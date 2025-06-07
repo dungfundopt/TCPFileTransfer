@@ -16,7 +16,6 @@ import javafx.scene.control.TextField;
 import javafx.stage.Stage;
 
 public class RegisterController {
-
     @FXML
     private PasswordField confirmPasswordField;
     @FXML
@@ -26,17 +25,13 @@ public class RegisterController {
     @FXML
     private TextField usernameField;
 
-    
-
     @FXML
     public void initialize() {
         errorLabel.setText(""); // Xóa text lỗi ban đầu
     }
 
     @FXML
-    @SuppressWarnings({ "unused", "resource" })
     void handleRegister(ActionEvent event) {
-        ServerClient serverClient;
         errorLabel.setText(""); // Xóa thông báo lỗi cũ
 
         String username = usernameField.getText();
@@ -55,24 +50,25 @@ public class RegisterController {
             return;
         }
 
-        serverClient = new ServerClient();
-        ServerResponse registerResponse = serverClient.register(username, password);
+        try (ServerClient serverClient = new ServerClient()) {
+            ServerResponse registerResponse = serverClient.register(username, password);
 
-        if (registerResponse != null && registerResponse.isSuccess()) {
-            errorLabel.setText("Registration successful! You can now log in.");
-            usernameField.clear();
-            passwordField.clear();
-            confirmPasswordField.clear();
-        } else {
-            String errorMessage = (registerResponse != null) ? registerResponse.getMessage() : "Server communication error.";
-            errorLabel.setText("Registration failed: " + errorMessage);
+            if (registerResponse != null && registerResponse.isSuccess()) {
+                errorLabel.setText("Registration successful! You can now log in.");
+                usernameField.clear();
+                passwordField.clear();
+                confirmPasswordField.clear();
+            } else {
+                String errorMessage = (registerResponse != null) ? registerResponse.getMessage() : "Server communication error.";
+                errorLabel.setText("Registration failed: " + errorMessage);
+            }
+        } catch (IOException e) {
+            errorLabel.setText("Error connecting to server: " + e.getMessage());
         }
     }
 
     @FXML
-    @SuppressWarnings("unused")
     void handleBackToLogin(ActionEvent event) {
-        
         try {
             Stage stage = (Stage)((Node)event.getSource()).getScene().getWindow();
             FXMLLoader loader = new FXMLLoader(getClass().getResource("Login.fxml"));
@@ -82,7 +78,6 @@ public class RegisterController {
             stage.setMaximized(true);
             stage.show();
         } catch (IOException e) {
-            
             App.showAlert("Error", "Could not load login page.");
         }
     }

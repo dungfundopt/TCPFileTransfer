@@ -2,8 +2,10 @@ com\example\client\ServerClient.class
 com\example\client\RegisterController.class
 com\example\client\ClientController$2.class
 com\example\client\ClientController$3.class
+com\example\client\ServerUploadException.class
 module-info.class
 com\example\client\App.class
 com\example\client\LoginController.class
 com\example\client\ClientController$1.class
+com\example\client\ServerDownloadException.class
 com\example\client\ClientController.class

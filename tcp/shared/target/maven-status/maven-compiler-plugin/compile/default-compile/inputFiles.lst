@@ -1,9 +1,9 @@
-E:\prj1 dungha\tcp\shared\src\main\java\com\example\shared\AuthRequest.java
-E:\prj1 dungha\tcp\shared\src\main\java\com\example\shared\ServerRequest.java
-E:\prj1 dungha\tcp\shared\src\main\java\com\example\shared\FileMetadata.java
-E:\prj1 dungha\tcp\shared\src\main\java\com\example\shared\AuthResponse.java
-E:\prj1 dungha\tcp\shared\src\main\java\com\example\shared\RequestType.java
-E:\prj1 dungha\tcp\shared\src\main\java\com\example\shared\FileTransferPacket.java
-E:\prj1 dungha\tcp\shared\src\main\java\com\example\shared\ServerResponse.java
-E:\prj1 dungha\tcp\shared\src\main\java\module-info.java
-E:\prj1 dungha\tcp\shared\src\main\java\com\example\shared\FileListResponse.java
+E:\TCPFileTransfer\tcp\shared\src\main\java\com\example\shared\ServerRequest.java
+E:\TCPFileTransfer\tcp\shared\src\main\java\com\example\shared\ServerResponse.java
+E:\TCPFileTransfer\tcp\shared\src\main\java\com\example\shared\FileListResponse.java
+E:\TCPFileTransfer\tcp\shared\src\main\java\com\example\shared\AuthRequest.java
+E:\TCPFileTransfer\tcp\shared\src\main\java\com\example\shared\FileMetadata.java
+E:\TCPFileTransfer\tcp\shared\src\main\java\com\example\shared\FileTransferPacket.java
+E:\TCPFileTransfer\tcp\shared\src\main\java\com\example\shared\RequestType.java
+E:\TCPFileTransfer\tcp\shared\src\main\java\com\example\shared\AuthResponse.java
+E:\TCPFileTransfer\tcp\shared\src\main\java\module-info.java

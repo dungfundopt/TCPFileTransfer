@@ -25,78 +25,74 @@ public class LoginController {
 
     @FXML
     public void initialize() {
-         // Không cần làm gì đặc biệt khi khởi tạo
+        // Initialization code if needed
     }
 
     @FXML
-    @SuppressWarnings("unused")
     void handleLogin(ActionEvent event) {
-        
         performLogin();
     }
 
     @FXML
-    @SuppressWarnings({"unused", "CallToPrintStackTrace"})
     void handleRegister(ActionEvent event) {
-         
-         try {
-             Stage stage = (Stage)((Node)event.getSource()).getScene().getWindow();
-             FXMLLoader loader = new FXMLLoader(getClass().getResource("Register.fxml"));
-             Parent root = loader.load();
+        try {
+            Stage stage = (Stage)((Node)event.getSource()).getScene().getWindow();
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("Register.fxml"));
+            Parent root = loader.load();
 
-             Scene scene = new Scene(root);
-             stage.setScene(scene);
-             stage.setMaximized(true);
-             stage.show();
-         } catch (IOException e) {
-             e.printStackTrace();
-             App.showAlert("Error", "Could not load registration page.");
-         }
+            Scene scene = new Scene(root);
+            stage.setScene(scene);
+            stage.setMaximized(true);
+            stage.show();
+        } catch (IOException e) {
+            App.showAlert("Error", "Could not load registration page: " + e.getMessage());
+        }
     }
 
     private void performLogin() {
-         String username = usernameField.getText();
-         String password = passwordField.getText();
+        String username = usernameField.getText();
+        String password = passwordField.getText();
 
-         if (username.isEmpty() || password.isEmpty()) {
-             App.showAlert("Login Failed", "Username and password cannot be empty.");
-             return;
-         }
+        if (username.isEmpty() || password.isEmpty()) {
+            App.showAlert("Login Failed", "Username and password cannot be empty.");
+            return;
+        }
 
-         
+        try {
+            serverClient = new ServerClient();
+            ServerResponse loginResponse = serverClient.authenticate(username, password);
 
-         serverClient = new ServerClient();
-         ServerResponse loginResponse = serverClient.authenticate(username, password);
+            if (loginResponse != null && loginResponse.isSuccess()) {
+                String loggedInUsername = (String) loginResponse.getData();
+                App.showAlert("Login Successful", loginResponse.getMessage());
 
-         if (loginResponse != null && loginResponse.isSuccess()) {
-             String loggedInUsername = (String) loginResponse.getData();
-             
-             App.showAlert("Login Successful", loginResponse.getMessage());
+                Stage stage = (Stage)usernameField.getScene().getWindow();
+                FXMLLoader loader = new FXMLLoader(getClass().getResource("Client.fxml"));
+                Parent mainAppRoot = loader.load();
 
-             try {
-                 Stage stage = (Stage)((Node)usernameField).getScene().getWindow();
-                 FXMLLoader loader = new FXMLLoader(getClass().getResource("Client.fxml"));
-                 Parent mainAppRoot = loader.load();
+                ClientController clientController = loader.getController();
+                clientController.setServerClient(serverClient);
+                clientController.setUsername(loggedInUsername);
 
-                 ClientController clientController = loader.getController();
-                 clientController.setServerClient(serverClient);
-                 clientController.setUsername(loggedInUsername);
+                Scene mainAppScene = new Scene(mainAppRoot);
+                stage.setScene(mainAppScene);
+                stage.show();
 
-                 Scene mainAppScene = new Scene(mainAppRoot);
-                 stage.setScene(mainAppScene);
-                 stage.show();
+            } else {
+                String errorMessage = (loginResponse != null) ? loginResponse.getMessage() : "Server communication error.";
+                App.showAlert("Login Failed", errorMessage);
+                closeServerConnection();
+            }
+        } catch (IOException e) {
+            App.showAlert("Error", "Could not connect to server or load main application: " + e.getMessage());
+            closeServerConnection();
+        }
+    }
 
-             } catch (IOException e) {
-                 
-                 App.showAlert("Error", "Could not load main application page.");
-                 if (serverClient != null) serverClient.closeConnection();
-             }
-
-         } else {
-             String errorMessage = (loginResponse != null) ? loginResponse.getMessage() : "Server communication error.";
-             
-             App.showAlert("Login Failed", errorMessage);
-         }
+    private void closeServerConnection() {
+        if (serverClient != null) {
+            serverClient.closeConnection();
+        }
     }
 
     public ServerClient getServerClient() {

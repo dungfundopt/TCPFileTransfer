@@ -57,7 +57,7 @@ public class ClientController {
 
     private final ObservableList<FileMetadata> masterFileList = FXCollections.observableArrayList();
     private FilteredList<FileMetadata> filteredFileList;
-
+    private String uploadfailed = "Upload Failed";
     // !!! Thêm trường ServerClient !!!
     private ServerClient serverClient;
 
@@ -139,7 +139,6 @@ public class ClientController {
     }
 
     @FXML
-    @SuppressWarnings("unused")
     void handleLogout(ActionEvent event) {
         
          if (serverClient != null) {
@@ -164,7 +163,6 @@ public class ClientController {
     }
 
      @FXML
-    @SuppressWarnings("unused")
      void handleRefresh(ActionEvent event) {
           
           loadFileList();
@@ -173,7 +171,6 @@ public class ClientController {
      }
 
     @FXML
-    @SuppressWarnings("unused")
     void handleSelectFile(ActionEvent event) {
         FileChooser fileChooser = new FileChooser();
         fileChooser.setTitle("Select File to Upload");
@@ -213,7 +210,7 @@ public class ClientController {
                                       .anyMatch(f -> f.getFilename().equals(filename));
          if (fileExistsLocally) {
              
-             App.showAlert("Upload Failed", "A file with this name already exists on the server.");
+             App.showAlert(uploadfailed, "A file with this name already exists on the server.");
              return;
          }
 
@@ -240,7 +237,7 @@ public class ClientController {
                           App.showAlert("Upload Success", response.getMessage());
                           loadFileList(); // Tải lại danh sách để thấy file mới
                      } else {
-                          App.showAlert("Upload Failed", "Server reported failure: " + (response != null ? response.getMessage() : "Unknown error."));
+                          App.showAlert(uploadfailed, "Server reported failure: " + (response != null ? response.getMessage() : "Unknown error."));
                      }
                      progressBar.setVisible(false);
                      uploadButton.setDisable(true);
@@ -255,7 +252,7 @@ public class ClientController {
                 Throwable exception = getException();
                 
                 Platform.runLater(() -> {
-                    App.showAlert("Upload Failed", "Error during upload: " + exception.getMessage());
+                    App.showAlert(uploadfailed, "Error during upload: " + exception.getMessage());
                     progressBar.setVisible(false);
                     uploadButton.setDisable(true);
                      selectedFileForUpload = null;
@@ -343,42 +340,17 @@ public class ClientController {
 
             @Override
             protected void succeeded() {
-                 FileMetadata downloadedMetadata = getValue();
-                 
-                 Platform.runLater(() -> {
-                     if (downloadedMetadata != null) {
-                          App.showAlert("Download Success", "File '" + downloadedMetadata.getFilename() + "' downloaded successfully!");
-                     } else {
-                          // Case này ít xảy ra nếu ServerClient trả về metadata sau khi tải xong
-                          App.showAlert("Download Success", "File downloaded successfully (metadata not returned).");
-                     }
-                     progressBar.setVisible(false);
-                     progressBar.progressProperty().unbind();
-                     progressBar.setProgress(0);
-                 });
+                handleDownloadSuccess(getValue());
             }
 
            @Override
            protected void failed() {
-                Throwable exception = getException();
-                
-                Platform.runLater(() -> {
-                    App.showAlert("Download Failed", "Error during download: " + exception.getMessage());
-                    progressBar.setVisible(false);
-                     progressBar.progressProperty().unbind();
-                     progressBar.setProgress(0);
-                });
+                handleDownloadFailed(getException());
             }
 
             @Override
             protected void cancelled() {
-                 
-                 Platform.runLater(() -> {
-                      App.showAlert("Download Cancelled", "File download was cancelled.");
-                      progressBar.setVisible(false);
-                      progressBar.progressProperty().unbind();
-                      progressBar.setProgress(0);
-                 });
+                handleDownloadCancelled();
             }
         }; // <-- Dấu chấm phẩy ở cuối Task
 
@@ -411,7 +383,6 @@ public class ClientController {
                       if (serverClient.getFileList() != null && serverClient.getFileList().isSuccess() && serverClient.getFileList().getData() instanceof FileListResponse) {
                            return ((FileListResponse) serverClient.getFileList().getData()).getFileList();
                       } else {
-                           System.err.println("Failed to get file list from server: " + ((serverClient.getFileList() != null) ? serverClient.getFileList().getMessage() : "Unknown server response."));
                            throw new Exception("Failed to load file list: " + ((serverClient.getFileList() != null) ? serverClient.getFileList().getMessage() : "Unknown server response."));
                       }
                  }
@@ -451,5 +422,32 @@ public class ClientController {
                      return file.getUploader() != null && file.getUploader().toLowerCase().contains(lowerCaseFilter);
                  });
              }
+        }
+        private void handleDownloadSuccess(FileMetadata downloadedMetadata) {
+            Platform.runLater(() -> {
+                if (downloadedMetadata != null) {
+                    App.showAlert("Download Success", "File '" + downloadedMetadata.getFilename() + "' downloaded successfully!");
+                } else {
+                    App.showAlert("Download Success", "File downloaded successfully (metadata not returned).");
+                }
+                resetProgressBar();
+            });
+        }
+        private void handleDownloadFailed(Throwable exception) {
+            Platform.runLater(() -> {
+                App.showAlert("Download Failed", "Error during download: " + exception.getMessage());
+                resetProgressBar();
+            });
+        }
+        private void handleDownloadCancelled() {
+            Platform.runLater(() -> {
+                App.showAlert("Download Cancelled", "File download was cancelled.");
+                resetProgressBar();
+            });
+        }
+        private void resetProgressBar() {
+            progressBar.setVisible(false);
+            progressBar.progressProperty().unbind();
+            progressBar.setProgress(0);
         }
     }
