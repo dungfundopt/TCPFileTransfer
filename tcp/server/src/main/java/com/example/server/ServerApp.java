@@ -31,7 +31,7 @@ public class ServerApp {
             }
 
         } catch (IOException e) {
-            e.printStackTrace();
+            // In chi tiết lỗi nếu cần debug
         } finally {
             executor.shutdown(); // Đóng Thread Pool khi Server dừng
         }

@@ -10,13 +10,14 @@ import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
-
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import com.example.shared.FileMetadata;
 
 public class DatabaseHandler {
 
     private static final String DB_URL = "jdbc:sqlite:server_database.db"; // Đổi tên file DB cho server
-
+    private static final Logger LOGGER = Logger.getLogger(DatabaseHandler.class.getName());
     // Bảng Users (giữ nguyên)
     private static final String TABLE_USERS = "users";
     private static final String COLUMN_USERNAME = "username";
@@ -29,24 +30,18 @@ public class DatabaseHandler {
     private static final String FILE_COLUMN_SIZE = "file_size";
     private static final String FILE_COLUMN_UPLOADER = "uploader";
     private static final String FILE_COLUMN_UPLOAD_TIME = "upload_time";
-
+    private String dtberror = "Lỗi cơ sở dữ liệu.";
     @SuppressWarnings("OverridableMethodCallInConstructor")
     public DatabaseHandler() {
         createNewTables(); // Gọi phương thức tạo cả hai bảng
     }
 
     @SuppressWarnings("CallToPrintStackTrace")
-     private Connection connect() {
-        // ... (Giữ nguyên phương thức connect) ...
-         Connection conn = null;
-         try {
-             conn = DriverManager.getConnection(DB_URL);
-             
-         } catch (SQLException e) {
-            e.printStackTrace();
-             
-         }
-         return conn;
+     private Connection connect() throws SQLException {
+         // Tạo kết nối đến cơ sở dữ liệu SQLite
+         // Nếu file DB không tồn tại, nó sẽ được tạo tự động
+         // (Đảm bảo thư mục chứa file DB đã tồn tại)
+        return DriverManager.getConnection(DB_URL);
      }
 
 
@@ -71,15 +66,12 @@ public class DatabaseHandler {
                 + "FOREIGN KEY(" + FILE_COLUMN_UPLOADER + ") REFERENCES " + TABLE_USERS + "(" + COLUMN_USERNAME + ")"
                 + ");";
 
-        try (Connection conn = connect()) {
-            if (conn != null) {
-                try (Statement stmt = conn.createStatement()) {
-                    stmt.execute(createUserTableSql);
-                    stmt.execute(createFileTableSql); // Tạo bảng files
-                }
-            }
+        try (Connection conn = connect();
+             Statement stmt = conn.createStatement()) {
+            stmt.execute(createUserTableSql);
+            stmt.execute(createFileTableSql); // Tạo bảng files
         } catch (SQLException e) {
-            e.printStackTrace();
+            LOGGER.log(Level.SEVERE, dtberror, e);
         }
     }
 
@@ -102,31 +94,29 @@ public class DatabaseHandler {
 // ...existing code...
 
         try (Connection conn = connect();
-             PreparedStatement pstmt = conn != null ? conn.prepareStatement(sql) : null) {
-            if (pstmt == null) {
-            return false;
-            }
+            PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
             pstmt.setString(1, username);
-            ResultSet rs = pstmt.executeQuery();
 
-            if (rs.next()) {
-            String storedPasswordHash = rs.getString(COLUMN_PASSWORD);
-            // !!! Chỗ này cần code để BĂM mật khẩu 'password' và SO SÁNH với 'storedPasswordHash' !!!
-            // Vì lý do đơn giản, ta tạm so sánh chuỗi (KHÔNG AN TOÀN)
-            return password.equals(storedPasswordHash); // <-- KHÔNG AN TOÀN
+            // ResultSet cũng là một tài nguyên cần được quản lý, nên đặt trong khối try
+            try (ResultSet rs = pstmt.executeQuery()) {
 
-            
-            // Nếu muốn so sánh đúng, chỉ cần return password.equals(storedPasswordHash); (đã có ở trên)
-            // Nếu bạn muốn dùng biến passwordMatches, hãy khai báo và gán giá trị cho nó:
-            
-            
-            // Nhưng ở đây chỉ cần:
-            // (Không cần thêm gì ở đây, vì đã return ở trên)
-            } else {
-            return false; // Không tìm thấy username
+                if (rs.next()) {
+                    // Lấy mật khẩu đã lưu trong database
+                    String storedPasswordHash = rs.getString(COLUMN_PASSWORD);
+                    
+                    // !!! QUAN TRỌNG: Đây là nơi bạn cần so sánh mật khẩu đã được băm (hash) !!!
+                    // Tạm thời vẫn dùng so sánh chuỗi trực tiếp (KHÔNG AN TOÀN)
+                    return password.equals(storedPasswordHash);
+                } else {
+                    // Không tìm thấy người dùng, trả về false
+                    return false;
+                }
             }
 
         } catch (SQLException e) {
+            // Nếu có bất kỳ lỗi nào xảy ra, ghi log để debug và trả về false
+            LOGGER.log(Level.SEVERE, "Lỗi cơ sở dữ liệu khi xác thực người dùng: ", e);
             return false;
         }
      }
@@ -149,20 +139,22 @@ public class DatabaseHandler {
          String sql = "INSERT INTO " + TABLE_USERS + "(" + COLUMN_USERNAME + ", " + COLUMN_PASSWORD + ") VALUES(?, ?)";
 
          try (Connection conn = connect();
-              PreparedStatement pstmt = conn != null ? conn.prepareStatement(sql) : null) {
-             if (pstmt == null) {
-                 return false;
-             }
-             pstmt.setString(1, username);
-             // !!! Băm (HASH) mật khẩu ở đây trước khi setString(2) !!!
-             pstmt.setString(2, password); // <-- Lưu mật khẩu chưa băm (KHÔNG AN TOÀN)
+            PreparedStatement pstmt = conn.prepareStatement(sql)) {
 
-             int rowsAffected = pstmt.executeUpdate();
-             return rowsAffected > 0;
+            pstmt.setString(1, username);
+            
+            // !!! QUAN TRỌNG: Băm (HASH) mật khẩu ở đây trước khi lưu vào DB !!!
+            pstmt.setString(2, password); // <-- Lưu mật khẩu chưa băm (KHÔNG AN TOÀN)
 
-         } catch (SQLException e) {
-             return false;
-         }
+            int rowsAffected = pstmt.executeUpdate();
+            return rowsAffected > 0;
+
+        } catch (SQLException e) {
+            // Nếu có lỗi (ví dụ: mất kết nối, lỗi SQL...), ghi log để có thể debug,
+            // thay vì chỉ im lặng trả về false.
+            LOGGER.log(Level.SEVERE, "Lỗi cơ sở dữ liệu khi thêm người dùng: ", e);
+            return false;
+        }
      }
       /**
       * Kiểm tra xem username đã tồn tại trong database chưa.
@@ -173,19 +165,26 @@ public class DatabaseHandler {
      private boolean usernameExists(String username) {
          String sql = "SELECT COUNT(*) FROM " + TABLE_USERS + " WHERE " + COLUMN_USERNAME + " = ?";
          try (Connection conn = connect();
-              PreparedStatement pstmt = conn != null ? conn.prepareStatement(sql) : null) {
-             if (pstmt == null) {
-                 return false;
-             }
-             pstmt.setString(1, username);
-             ResultSet rs = pstmt.executeQuery();
-             if (rs.next()) {
-                 return rs.getInt(1) > 0;
-             }
-         } catch (SQLException e) {
-             e.printStackTrace();
-         }
-         return false;
+            PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+            pstmt.setString(1, username);
+
+            // Đặt ResultSet vào trong khối try riêng để đảm bảo nó được đóng đúng cách
+            try (ResultSet rs = pstmt.executeQuery()) {
+                // COUNT(*) sẽ luôn trả về một hàng, nên rs.next() sẽ là true
+                if (rs.next()) {
+                    // Lấy giá trị từ cột đầu tiên (COUNT(*)) và kiểm tra xem nó có > 0 không
+                    return rs.getInt(1) > 0;
+                }
+            }
+
+        } catch (SQLException e) {
+            // Ghi log lỗi với thông điệp rõ ràng hơn
+            LOGGER.log(Level.SEVERE, "Lỗi cơ sở dữ liệu khi kiểm tra người dùng tồn tại: ", e);
+        }
+
+        // Trả về false nếu có lỗi xảy ra hoặc nếu (về mặt lý thuyết) query không trả về hàng nào
+        return false;
      }
 
 
@@ -209,7 +208,7 @@ public class DatabaseHandler {
             return rowsAffected > 0;
 
         } catch (SQLException e) {
-             
+             LOGGER.log(Level.SEVERE, "Không thể thêm metadata của file vào DB", e);
              // Lỗi có thể do UNIQUE constraint trên filename nếu đã tồn tại file cùng tên
              return false;
         }
@@ -221,7 +220,15 @@ public class DatabaseHandler {
      */
     @SuppressWarnings("CallToPrintStackTrace")
     public List<FileMetadata> getAllFileMetadata() {
-        String sql = "SELECT " + FILE_COLUMN_FILENAME + ", " + FILE_COLUMN_SIZE + ", " + FILE_COLUMN_UPLOADER + ", " + FILE_COLUMN_UPLOAD_TIME + " FROM " + TABLE_FILES + " ORDER BY " + FILE_COLUMN_UPLOAD_TIME + " DESC"; // Sắp xếp theo thời gian mới nhất
+        String sql = String.format(
+            "SELECT %s, %s, %s, %s FROM %s ORDER BY %s DESC",
+            FILE_COLUMN_FILENAME,
+            FILE_COLUMN_SIZE,
+            FILE_COLUMN_UPLOADER,
+            FILE_COLUMN_UPLOAD_TIME,
+            TABLE_FILES,
+            FILE_COLUMN_UPLOAD_TIME
+        );
 
         List<FileMetadata> fileList = new ArrayList<>();
         try (Connection conn = connect();
@@ -239,7 +246,7 @@ public class DatabaseHandler {
             }
 
         } catch (SQLException e) {
-            e.printStackTrace();
+            LOGGER.log(Level.SEVERE, dtberror, e);
              
         }
         return fileList;
@@ -277,7 +284,7 @@ public class DatabaseHandler {
             }
 
         } catch (SQLException e) {
-            e.printStackTrace();
+            LOGGER.log(Level.SEVERE, dtberror, e);
              
         }
         return fileList;
@@ -306,7 +313,7 @@ public class DatabaseHandler {
                  return new FileMetadata(filename, fileSize, uploader, uploadTime);
              }
           } catch (SQLException e) {
-            e.printStackTrace();
+            LOGGER.log(Level.SEVERE, dtberror, e);
               
           }
           return null; // Không tìm thấy

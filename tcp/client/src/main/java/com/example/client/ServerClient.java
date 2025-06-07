@@ -31,7 +31,7 @@ public class ServerClient implements Closeable {
 
     private boolean isConnected = false;
     private String loggedInUsername = null;
-
+    private String noconnect = "Not connected or not logged in.";
     public ServerClient() {
         // Kết nối được thực hiện trong authenticate() hoặc register()
     }
@@ -185,7 +185,7 @@ public class ServerClient implements Closeable {
     @SuppressWarnings("exports")
     public ServerResponse getFileList() {
         if (!isConnected || loggedInUsername == null) {
-             return new ServerResponse(false, "Not connected or not logged in.", null);
+             return new ServerResponse(false, noconnect, null);
         }
         ServerRequest request = new ServerRequest(RequestType.LIST_FILES, null);
         return sendAndReceive(request);
@@ -199,7 +199,7 @@ public class ServerClient implements Closeable {
     @SuppressWarnings("exports")
     public ServerResponse searchFiles(String query) {
         if (!isConnected || loggedInUsername == null) {
-             return new ServerResponse(false, "Not connected or not logged in.", null);
+             return new ServerResponse(false, noconnect, null);
         }
         ServerRequest request = new ServerRequest(RequestType.SEARCH_FILES, query);
         return sendAndReceive(request);
@@ -220,7 +220,7 @@ public class ServerClient implements Closeable {
              throws Exception {
 
           if (!isConnected || loggedInUsername == null) {
-               throw new IllegalStateException("Not connected or not logged in.");
+               throw new IllegalStateException(noconnect);
           }
            if (fileToSend == null || !fileToSend.exists()) {
                throw new IllegalArgumentException("Invalid file selected for upload.");
@@ -338,7 +338,7 @@ public class ServerClient implements Closeable {
 
     private void validateDownloadParams(String filenameToDownload, File saveFile) {
         if (!isConnected || loggedInUsername == null) {
-            throw new IllegalStateException("Not connected or not logged in.");
+            throw new IllegalStateException(noconnect);
         }
         if (filenameToDownload == null || filenameToDownload.trim().isEmpty()) {
             throw new IllegalArgumentException("Filename cannot be empty for download.");

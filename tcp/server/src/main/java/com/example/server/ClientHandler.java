@@ -65,7 +65,7 @@ public class ClientHandler implements Runnable {
                     clientSocket.close();
                 }
             } catch (IOException e) {
-                e.printStackTrace();
+                // e.printStackTrace(); // In chi tiết lỗi nếu cần debug
             }
         }
     }
