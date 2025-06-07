@@ -1,0 +1,57 @@
+/* client/src/main/resources/com/example/client/styling/fullPackStyling.css */
+
+/* Áp dụng cho tất cả các nút (Button) */
+.button {
+    -fx-background-color: #4CAF50; /* Màu xanh lá cây */
+    -fx-text-fill: white; /* Màu chữ trắng */
+    -fx-font-size: 14px;
+    -fx-padding: 8px 16px; /* Khoảng đệm bên trong nút */
+    -fx-border-radius: 5px; /* Bo tròn góc viền */
+    -fx-background-radius: 5px; /* Bo tròn góc nền */
+    -fx-cursor: hand; /* Con trỏ chuột hình bàn tay khi di qua nút */
+}
+
+/* Hiệu ứng khi di chuột qua nút */
+.button:hover {
+    -fx-background-color: #45a049; /* Màu xanh đậm hơn một chút */
+}
+
+/* Hiệu ứng khi nút bị nhấn */
+.button:pressed {
+    -fx-background-color: #39843c; /* Màu xanh đậm hơn nữa */
+}
+
+/* Áp dụng cho TextFields và PasswordFields */
+.text-field, .password-field {
+    -fx-font-size: 14px;
+    -fx-padding: 8px;
+    -fx-border-color: #ccc; /* Màu viền xám nhạt */
+    -fx-border-width: 1px;
+    -fx-border-radius: 5px;
+    -fx-background-radius: 5px;
+}
+
+/* Hiệu ứng khi trường nhập liệu được focus (đang gõ vào) */
+.text-field:focused, .password-field:focused {
+    -fx-border-color: #0078D7; /* Màu xanh dương */
+    -fx-border-width: 2px; /* Viền dày hơn */
+    -fx-faint-focus-color: transparent; /* Loại bỏ hiệu ứng focus mặc định của JavaFX */
+    -fx-focus-color: transparent;
+}
+
+/* Bạn có thể thêm các style khác cho Label, TableView, ProgressBar, v.v. */
+/* Ví dụ cho Label: */
+/*
+.label {
+    -fx-text-fill: #333;
+    -fx-font-family: "Arial";
+}
+*/
+
+/* Ví dụ cho ProgressBar: */
+
+.progress-bar > .bar {
+    -fx-background-color: linear-gradient(to left, #4CAF50, #8BC34A); /* Màu gradient cho thanh tiến độ */
+    -fx-background-insets: 0;
+    -fx-padding: 0;
+}

@@ -1,0 +1,9 @@
+com\example\shared\ServerResponse.class
+module-info.class
+com\example\shared\ServerRequest.class
+com\example\shared\FileMetadata.class
+com\example\shared\AuthResponse.class
+com\example\shared\AuthRequest.class
+com\example\shared\FileListResponse.class
+com\example\shared\RequestType.class
+com\example\shared\FileTransferPacket.class

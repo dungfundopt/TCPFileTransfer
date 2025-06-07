@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.PasswordField?>
+<?import javafx.scene.control.Separator?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.effect.GaussianBlur?>
+<?import javafx.scene.image.Image?>
+<?import javafx.scene.image.ImageView?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.StackPane?>
+<?import javafx.scene.layout.VBox?>
+<?import javafx.scene.text.Font?>
+
+<!-- Root StackPane: Lấp đầy cửa sổ, chứa background và nội dung chính -->
+<StackPane xmlns="http://javafx.com/javafx/23.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.example.client.LoginController">
+
+    <!-- Lớp 1: Background Image with Blur -->
+    <!-- ImageView: Neo vào tất cả các cạnh của StackPane để lấp đầy -->
+    <!-- Đặt StackPane.alignment="CENTER" TRỰC TIẾP trên thẻ ImageView -->
+    <ImageView pickOnBounds="true" preserveRatio="false" StackPane.alignment="CENTER">
+        <image>
+            <Image url="@images/background.png" />
+        </image>
+        <effect>
+            <GaussianBlur radius="1.0" /> <!-- Radius 1.0 -->
+        </effect>
+        <!-- Sử dụng Insets 0 để lấp đầy hoàn toàn -->
+         <StackPane.margin>
+             <Insets top="0" right="0" bottom="0" left="0"/>
+         </StackPane.margin>
+    </ImageView>
+
+    <!-- Lớp 2: Main Content (đặt trên ImageView background) -->
+    <!-- BorderPane: Lấp đầy StackPane, bố cục Top và Center -->
+    <BorderPane>
+
+        <!-- Phần TOP: Tiêu đề ứng dụng -->
+        <top>
+            <HBox alignment="CENTER" prefHeight="80.0" style="-fx-background-color: rgba(0, 0, 0, 0.7);">
+                 <padding> <Insets bottom="10" top="10" /> </padding>
+                 <!-- VBox chứa Label title, co giãn ngang -->
+                 <VBox alignment="CENTER" spacing="5.0" HBox.hgrow="ALWAYS">
+                    <Label alignment="CENTER" text="TCP File transfer" textFill="WHITE">
+                        <font>
+                            <Font name="Segoe UI" size="24.0" />
+                        </font>
+                    </Label>
+                </VBox>
+            </HBox>
+        </top>
+
+        <!-- Phần CENTER: Khu vực Form Login -->
+        <center>
+           <!-- StackPane: Bọc nội dung form để căn giữa trong khu vực center của BorderPane -->
+            <StackPane alignment="CENTER">
+                <!-- VBox: Chứa toàn bộ các control của form theo chiều dọc -->
+                <!-- Đặt style cho background trắng mờ và padding -->
+                <!-- maxWidth để giới hạn chiều rộng tối đa của form khi cửa sổ quá rộng -->
+                <VBox alignment="CENTER" spacing="10.0" style="-fx-background-color: rgba(255, 255, 255, 0.8); -fx-padding: 20;" maxWidth="400.0"> <!-- Giới hạn chiều rộng VBox -->
+                    <!-- Label Login Title -->
+                    <Label text="Login" textFill="#fffcfc">
+                        <font>
+                            <Font name="Segoe UI" size="36.0" />
+                        </font>
+                         <VBox.margin><Insets bottom="10"/></VBox.margin> <!-- Thêm margin dưới -->
+                    </Label>
+
+                    <!-- TextField Username -->
+                    <!-- maxWidth để giới hạn chiều rộng của TextField -->
+                    <TextField fx:id="usernameField" promptText="Username or email" maxWidth="300.0"/>
+
+                    <!-- PasswordField -->
+                    <!-- maxWidth để giới hạn chiều rộng của PasswordField -->
+                    <PasswordField fx:id="passwordField" promptText="Password" stylesheets="@styling/fullPackStyling.css" maxWidth="300.0"/>
+
+                     <!-- HBox: Chứa các nút Login và Register theo chiều ngang -->
+                     <!-- alignment="CENTER" và spacing để căn giữa và tạo khoảng cách giữa 2 nút -->
+                    <HBox alignment="CENTER" spacing="20.0"> <!-- Điều chỉnh spacing giữa các nút -->
+                        <Button mnemonicParsing="false" onAction="#handleRegister" prefHeight="34.0" prefWidth="127.0" stylesheets="@styling/fullPackStyling.css" text="Register" />
+                        <Button mnemonicParsing="false" onAction="#handleLogin" prefHeight="34.0" prefWidth="127.0" stylesheets="@styling/fullPackStyling.css" text="Sign in" />
+                    </HBox>
+
+                    <!-- Separator (nếu cần) -->
+                    <!-- <Separator prefHeight="7.0" maxWidth="300"/> -->
+                    <!-- Label Lỗi (nếu cần) -->
+                    <!-- <Label fx:id="errorLabel" textFill="red" /> -->
+
+                </VBox>
+            </StackPane>
+        </center>
+
+    </BorderPane>
+</StackPane>

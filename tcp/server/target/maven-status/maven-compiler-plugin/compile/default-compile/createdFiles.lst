@@ -1,0 +1,5 @@
+com\example\server\ClientHandler.class
+module-info.class
+com\example\server\DatabaseHandler.class
+com\example\server\ClientHandler$1.class
+com\example\server\ServerApp.class

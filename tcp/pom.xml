@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>com.example</groupId>
+    <artifactId>tcp</artifactId>
+    <version>1.0-SNAPSHOT</version>
+    <packaging>pom</packaging> <!-- Packaging type là pom cho parent project -->
+
+    <modules>
+        <module>shared</module> <!-- Shared module cần được build trước -->
+        <module>server</module>
+        <module>client</module>
+    </modules>
+
+    <properties>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <maven.compiler.release>17</maven.compiler.release> <!-- Hoặc phiên bản JDK bạn dùng -->
+        <javafx.version>23.0.1</javafx.version> <!-- Hoặc phiên bản JavaFX bạn dùng -->
+    </properties>
+
+    <dependencyManagement>
+        <!-- Định nghĩa các phiên bản dependency chung ở đây -->
+        <dependencies>
+            <!-- JavaFX -->
+            <dependency>
+                <groupId>org.openjfx</groupId>
+                <artifactId>javafx-controls</artifactId>
+                <version>${javafx.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.openjfx</groupId>
+                <artifactId>javafx-fxml</artifactId>
+                <version>${javafx.version}</version>
+            </dependency>
+             <dependency>
+                <groupId>org.openjfx</groupId>
+                <artifactId>javafx-graphics</artifactId>
+                <version>${javafx.version}</version>
+            </dependency>
+             <dependency>
+                <groupId>org.openjfx</groupId>
+                <artifactId>javafx-base</artifactId>
+                <version>${javafx.version}</version>
+            </dependency>
+
+
+            <!-- SQLite JDBC Driver -->
+            <dependency>
+                <groupId>org.xerial</groupId>
+                <artifactId>sqlite-jdbc</artifactId>
+                <version>3.44.1.0</version> <!-- Kiểm tra version mới nhất -->
+            </dependency>
+
+            <!-- Shared Module -->
+            <dependency>
+                <groupId>${project.groupId}</groupId>
+                <artifactId>shared</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+        </dependencies>
+    </dependencyManagement>
+
+     <build>
+        <pluginManagement>
+            <plugins>
+                 <!-- Cấu hình compiler chung -->
+                 <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-compiler-plugin</artifactId>
+                    <version>3.8.1</version> <!-- Hoặc version mới hơn -->
+                    <configuration>
+                        <release>${maven.compiler.release}</release>
+                    </configuration>
+                 </plugin>
+                 <!-- Cấu hình JavaFX Plugin chung -->
+                 <plugin>
+                    <groupId>org.openjfx</groupId>
+                    <artifactId>javafx-maven-plugin</artifactId>
+                    <version>0.0.8</version> <!-- Hoặc version mới hơn -->
+                    <configuration>
+                         <release>${maven.compiler.release}</release>
+                    </configuration>
+                 </plugin>
+                 <!-- Cấu hình Exec Plugin chung (để chạy main class) -->
+                  <plugin>
+                    <groupId>org.codehaus.mojo</groupId>
+                    <artifactId>exec-maven-plugin</artifactId>
+                    <version>3.0.0</version> <!-- Hoặc version mới hơn -->
+                     <configuration>
+                        <executable>java</executable>
+                    </configuration>
+                </plugin>
+            </plugins>
+        </pluginManagement>
+    </build>
+</project>

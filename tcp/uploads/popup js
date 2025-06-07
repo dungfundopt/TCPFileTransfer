@@ -1,0 +1,39 @@
+document.addEventListener("DOMContentLoaded", () => {
+    chrome.storage.local.get("scanData", (result) => {
+        const techList = document.getElementById("techList");
+        techList.innerHTML = "";  
+
+        const scanData = result.scanData;
+
+        if (scanData && Object.keys(scanData).length > 0) {
+            for (const [techName, techInfo] of Object.entries(scanData)) {
+                const listItem = document.createElement("li");
+                listItem.style.display = "flex";
+                listItem.style.alignItems = "center";
+                listItem.style.marginBottom = "8px";
+
+                // img for icon
+                const iconImg = document.createElement("img");
+                iconImg.src = techInfo.icon || "";
+                iconImg.alt = techName;
+                iconImg.width = 20;
+                iconImg.height = 20;
+                iconImg.style.marginRight = "8px";
+                iconImg.onerror = () => { iconImg.style.display = 'none'; }; 
+
+                // Text tech
+                const textSpan = document.createElement("span");
+                const version = techInfo.version ? ` (v${techInfo.version})` : "";
+                textSpan.textContent = `${techName}${version}`;
+
+                listItem.appendChild(iconImg);
+                listItem.appendChild(textSpan);
+                techList.appendChild(listItem);
+            }
+        } else {
+            const noData = document.createElement("li");
+            noData.textContent = "No technology data was scanned";
+            techList.appendChild(noData);
+        }
+    });
+});

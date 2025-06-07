@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.PasswordField?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.effect.GaussianBlur?>
+<?import javafx.scene.image.Image?>
+<?import javafx.scene.image.ImageView?>
+<?import javafx.scene.layout.AnchorPane?>
+<?import javafx.scene.layout.StackPane?>
+<?import javafx.scene.layout.VBox?>
+<?import javafx.scene.text.Font?>
+
+<!-- Root StackPane: Lấp đầy cửa sổ -->
+<StackPane xmlns="http://javafx.com/javafx/23.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.example.client.RegisterController">
+
+    <!-- Lớp 1: Background Image with Blur -->
+    <!-- ImageView: Neo vào tất cả các cạnh để lấp đầy -->
+    <!-- Đặt StackPane.alignment="CENTER" TRỰC TIẾP trên thẻ ImageView -->
+    <ImageView pickOnBounds="true" preserveRatio="false" StackPane.alignment="CENTER">
+        <image>
+            <Image url="@images/background3.png" />
+        </image>
+        <effect>
+            <GaussianBlur radius="1.0" /> <!-- Radius 1.0 -->
+        </effect>
+        <!-- Sử dụng Insets 0 để lấp đầy -->
+         <StackPane.margin>
+             <Insets top="0" right="0" bottom="0" left="0"/>
+         </StackPane.margin>
+    </ImageView>
+
+    <!-- Lớp 2: Main Content (đặt trên ImageView background) -->
+    <!-- AnchorPane: Lấp đầy StackPane -->
+    <AnchorPane id="AnchorPane">
+
+        <!-- VBox: Chứa các control, neo vào các cạnh của AnchorPane cha để căn giữa theo khoảng lề cố định -->
+        <!-- Đặt style cho background và padding -->
+        <VBox alignment="CENTER" spacing="10.0" style="-fx-background-color: rgba(255, 255, 255, 0.8); -fx-padding: 20;" AnchorPane.topAnchor="0.0" AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="150.0" AnchorPane.rightAnchor="150.0">
+
+            <Label text="Register">
+               <font>
+                  <Font name="Segoe UI" size="24.0" />
+               </font>
+                <VBox.margin><Insets bottom="10"/></VBox.margin> <!-- Thêm margin dưới -->
+            </Label>
+
+            <!-- Các TextField/PasswordField/Button trong VBox sẽ co giãn theo VBox, giới hạn bởi maxWidth -->
+            <TextField fx:id="usernameField" promptText="Username or email" maxWidth="300.0"/>
+            <PasswordField fx:id="passwordField" promptText="Password" maxWidth="300.0"/>
+            <PasswordField fx:id="confirmPasswordField" promptText="Confirm Password" maxWidth="300.0"/>
+
+            <Button onAction="#handleRegister" text="Register" stylesheets="@styling/fullPackStyling.css" maxWidth="300.0"/>
+            <Button onAction="#handleBackToLogin" text="Back to Login" stylesheets="@styling/fullPackStyling.css" maxWidth="300.0"/>
+
+            <Label fx:id="errorLabel" textFill="red" />
+        </VBox>
+    </AnchorPane>
+
+</StackPane>
