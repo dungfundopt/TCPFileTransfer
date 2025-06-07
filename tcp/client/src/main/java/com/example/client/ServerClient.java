@@ -372,35 +372,44 @@ public class ServerClient implements Closeable {
     }
 
     private long receiveFileData(File saveFile, long expectedSize, BiConsumer<Long, Long> progressCallback,
-            java.util.logging.Logger logger) throws Exception {
-        long totalReceived = 0;
-        try (OutputStream fos = Files.newOutputStream(saveFile.toPath(), StandardOpenOption.CREATE,
-                StandardOpenOption.WRITE, StandardOpenOption.TRUNCATE_EXISTING)) {
-            FileTransferPacket packet;
-            while (true) {
-                Object receivedObject = this.ois.readObject();
-                if (!(receivedObject instanceof FileTransferPacket)) {
-                    logger.severe("Client: Received unexpected object during download.");
-                    throw new IOException("Received unexpected data from server during download.");
-                }
-                packet = (FileTransferPacket) receivedObject;
+        java.util.logging.Logger logger) throws FileTransferException {
 
-                if (packet.getData() != null && packet.getData().length > 0) {
-                    fos.write(packet.getData());
-                    totalReceived += packet.getData().length;
+            long totalReceived = 0;
+            try (OutputStream fos = Files.newOutputStream(saveFile.toPath(), StandardOpenOption.CREATE,
+                    StandardOpenOption.WRITE, StandardOpenOption.TRUNCATE_EXISTING)) {
 
-                    if (progressCallback != null) {
-                        progressCallback.accept(totalReceived, expectedSize);
+                while (true) {
+                    Object receivedObject = this.ois.readObject(); // This can throw IOException or ClassNotFoundException
+
+                    if (!(receivedObject instanceof FileTransferPacket)) {
+                        String errorMessage = "Received unexpected data type from server during download. Expected FileTransferPacket.";
+                        logger.severe("Client: data type Expected FileTransferPacket.");
+                        // Throw our specific exception
+                        throw new FileTransferException(errorMessage);
+                    }
+
+                    FileTransferPacket packet = (FileTransferPacket) receivedObject;
+
+                    if (packet.getData() != null && packet.getData().length > 0) {
+                        fos.write(packet.getData());
+                        totalReceived += packet.getData().length;
+
+                        if (progressCallback != null) {
+                            progressCallback.accept(totalReceived, expectedSize);
+                        }
+                    }
+
+                    if (packet.isLastPacket()) {
+                        break; // Exit the loop when the final packet is received
                     }
                 }
-
-                if (packet.isLastPacket()) {
-                    break;
-                }
+            } catch (IOException | ClassNotFoundException e) {
+                // Catch lower-level exceptions and wrap them in our specific FileTransferException.
+                // This makes the method's contract clear and preserves the original error information.
+                throw new FileTransferException("A network or data-related error occurred during file reception.", e);
             }
+            return totalReceived;
         }
-        return totalReceived;
-    }
 
     private void verifyFileSize(long totalReceived, long expectedSize, File saveFile, String filenameToDownload,
             java.util.logging.Logger logger) throws IOException {
