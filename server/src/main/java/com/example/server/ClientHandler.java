@@ -292,13 +292,7 @@ public class ClientHandler implements Runnable {
     }
     
     private boolean requiresAuth(RequestType type) {
-        switch (type) {
-            
-            case LOGIN, REGISTER:
-                return false;
-            default:
-                return true;
-        }
+        return !(type == RequestType.LOGIN || type == RequestType.REGISTER);
     }
 
     private void closeSocket() {
