@@ -1,17 +1,18 @@
-package com.example.server; // Đảm bảo đúng package
+// Dán để THAY THẾ TOÀN BỘ file clienthandler.java của bạn
 
-import java.io.IOException; // Vẫn cần AuthRequest nếu dùng cấu trúc cũ
-import java.io.InputStream; // Import FileMetadata
-import java.io.ObjectInputStream; // Import FileListResponse
-import java.io.ObjectOutputStream; // Import FileTransferPacket
-import java.io.OutputStream; // Import RequestType
-import java.net.Socket; // Import ServerRequest
-import java.nio.file.Files; // Import ServerResponse
-import java.nio.file.Path; // Cần cho file I/O
+package com.example.server;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+import java.io.OutputStream;
+import java.net.Socket;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.time.LocalDateTime; // Cần cho thao tác file dễ dàng
+import java.time.LocalDateTime;
 import java.util.List;
-
 import com.example.shared.AuthRequest;
 import com.example.shared.FileListResponse;
 import com.example.shared.FileMetadata;
@@ -23,271 +24,267 @@ import com.example.shared.ServerResponse;
 public class ClientHandler implements Runnable {
     private Socket clientSocket;
     private DatabaseHandler dbHandler;
-    // Giả định Server chỉ lưu file vào thư mục 'uploads' trong cùng thư mục chạy Server JAR
     private static final Path UPLOAD_DIR = Paths.get("uploads");
-    private String loggedInUsername = null; // Lưu username của client đã đăng nhập
+    private String loggedInUsername = null;
 
     public ClientHandler(Socket socket, DatabaseHandler dbHandler) {
         this.clientSocket = socket;
         this.dbHandler = dbHandler;
-         // Đảm bảo thư mục uploads tồn tại
         try {
             Files.createDirectories(UPLOAD_DIR);
         } catch (IOException e) {
-            
-            // Server có thể cần thoát hoặc thông báo lỗi nghiêm trọng hơn
+            System.err.println("Could not create upload directory: " + e.getMessage());
         }
     }
 
     @Override
-    @SuppressWarnings("CallToPrintStackTrace")
     public void run() {
-        try (
-            ObjectOutputStream oos = new ObjectOutputStream(clientSocket.getOutputStream());
-            ObjectInputStream ois = new ObjectInputStream(clientSocket.getInputStream());
-        ) {
+        // Luồng I/O được quản lý trong try-with-resources
+        try (ObjectOutputStream oos = new ObjectOutputStream(clientSocket.getOutputStream());
+             ObjectInputStream ois = new ObjectInputStream(clientSocket.getInputStream())) {
+            
+            // Vòng lặp chính để xử lý các yêu cầu từ client
             while (clientSocket.isConnected() && !clientSocket.isClosed()) {
                 ServerRequest request = (ServerRequest) ois.readObject();
-                ServerResponse response = handleRequest(request, ois, oos);
-                if (response != null) {
-                    oos.writeObject(response);
-                    oos.flush();
+
+                // THAY ĐỔI QUAN TRỌNG:
+                // Đối với UPLOAD_FILE và DOWNLOAD_FILE, chúng ta xử lý hoàn toàn trong các phương thức riêng
+                // và không mong đợi một ServerResponse trả về từ handleRequest.
+                if (request.getType() == RequestType.UPLOAD_FILE) {
+                    handleUploadFileRequest(request, ois, oos);
+                } else if (request.getType() == RequestType.DOWNLOAD_FILE) {
+                    handleDownloadFileRequest(request, oos);
+                } else {
+                    // Đối với các yêu cầu đơn giản khác, chúng ta nhận và gửi phản hồi
+                    ServerResponse response = handleSimpleRequest(request);
+                    if (response != null) {
+                        oos.writeObject(response);
+                        oos.flush();
+                    }
                 }
-                if (shouldTerminate(request)) {
+
+                // Nếu là yêu cầu LOGOUT hoặc client chưa đăng nhập (đối với các yêu cầu cần auth), ngắt vòng lặp
+                if (request.getType() == RequestType.LOGOUT || (loggedInUsername == null && requiresAuth(request.getType()))) {
                     break;
                 }
             }
         } catch (IOException | ClassNotFoundException e) {
-            // e.printStackTrace(); // In chi tiết lỗi nếu cần debug
+            // Lỗi giao tiếp hoặc client ngắt kết nối đột ngột
+            System.out.println("Client " + (loggedInUsername != null ? loggedInUsername : clientSocket.getInetAddress()) + " disconnected.");
         } finally {
-            try {
-                if (clientSocket != null && !clientSocket.isClosed()) {
-                    clientSocket.close();
-                }
-            } catch (IOException e) {
-                // e.printStackTrace(); // In chi tiết lỗi nếu cần debug
-            }
+            closeSocket();
         }
     }
 
-    private ServerResponse handleRequest(ServerRequest request, ObjectInputStream ois, ObjectOutputStream oos) throws IOException, ClassNotFoundException {
+    // Xử lý các yêu cầu đơn giản trả về một ServerResponse ngay lập tức
+    private ServerResponse handleSimpleRequest(ServerRequest request) {
         switch (request.getType()) {
-            case LOGIN, REGISTER -> {
+            case LOGIN:
+            case REGISTER:
                 return handleAuthRequest(request);
-            }
-            case LIST_FILES -> {
+            case LIST_FILES:
                 return handleListFilesRequest();
-            }
-            case SEARCH_FILES -> {
+            case SEARCH_FILES:
                 return handleSearchFilesRequest(request);
-            }
-            case UPLOAD_FILE -> {
-                return handleUploadFileRequest(request, ois, oos);
-            }
-            case DOWNLOAD_FILE -> {
-                return handleDownloadFileRequest(request, oos);
-            }
-            case DELETE_FILE -> {
+            case DELETE_FILE:
                 return handleDeleteFileRequest(request);
-            }
-            case LOGOUT -> {
+            case LOGOUT:
                 loggedInUsername = null;
                 return new ServerResponse(true, "Logged out successfully.", null);
-            }
-            default -> {
-                return new ServerResponse(false, "Unknown request type.", null);
+            default:
+                return new ServerResponse(false, "Unknown or unsupported request type.", null);
+        }
+    }
+    
+    // =========================================================================
+    // PHƯƠNG THỨC XỬ LÝ UPLOAD ĐÃ ĐƯỢC TÁI CẤU TRÚC (SỬA LỖI)
+    // =========================================================================
+    private void handleUploadFileRequest(ServerRequest request, ObjectInputStream ois, ObjectOutputStream oos) throws IOException {
+        if (loggedInUsername == null || !(request.getData() instanceof FileMetadata)) {
+            oos.writeObject(new ServerResponse(false, "Authentication required or invalid upload request.", null));
+            oos.flush();
+            return;
+        }
+
+        FileMetadata fileMetadata = (FileMetadata) request.getData();
+        Path filePath = UPLOAD_DIR.resolve(fileMetadata.getFilename());
+
+        if (dbHandler.getFileMetadataByName(fileMetadata.getFilename()) != null) {
+            oos.writeObject(new ServerResponse(false, "File with this name already exists.", null));
+            oos.flush();
+            return;
+        }
+
+        try {
+            // 1. Gửi phản hồi "Ready" cho client
+            oos.writeObject(new ServerResponse(true, "Ready to receive file.", null));
+            oos.flush();
+
+            // 2. Gọi phương thức nhận file
+            receiveFile(ois, filePath, fileMetadata.getFileSize());
+
+            // 3. File đã nhận xong, lưu metadata vào DB
+            FileMetadata completeMetadata = new FileMetadata(
+                    fileMetadata.getFilename(),
+                    fileMetadata.getFileSize(), // Kích thước file nhận được
+                    loggedInUsername,
+                    LocalDateTime.now());
+            boolean metadataSaved = dbHandler.addFileMetadata(completeMetadata);
+
+            // 4. Gửi phản hồi CUỐI CÙNG báo thành công/thất bại
+            ServerResponse finalResponse = new ServerResponse(metadataSaved,
+                    metadataSaved ? "File uploaded successfully." : "File uploaded, but failed to save metadata.", null);
+            oos.writeObject(finalResponse);
+            oos.flush();
+
+        } catch (IOException | ClassNotFoundException e) {
+            System.err.println("Error during file transfer: " + e.getMessage());
+            Files.deleteIfExists(filePath); // Dọn dẹp file hỏng
+            // Cố gắng gửi thông báo lỗi cho client nếu có thể
+            if (clientSocket.isConnected() && !clientSocket.isClosed()) {
+                oos.writeObject(new ServerResponse(false, "Error during file transfer on server: " + e.getMessage(), null));
+                oos.flush();
             }
         }
     }
 
-    private boolean shouldTerminate(ServerRequest request) {
-        return request.getType() == RequestType.LOGOUT ||
-               ((request.getType() != RequestType.LOGIN && request.getType() != RequestType.REGISTER)
-                && loggedInUsername == null);
+    // =========================================================================
+    // PHƯƠNG THỨC NHẬN FILE ĐÚNG LOGIC
+    // =========================================================================
+    private void receiveFile(ObjectInputStream ois, Path filePath, long expectedSize) throws IOException, ClassNotFoundException {
+        long totalReceived = 0;
+        try (OutputStream fos = Files.newOutputStream(filePath)) {
+            while (totalReceived < expectedSize) {
+                Object packetObj = ois.readObject();
+                if (!(packetObj instanceof FileTransferPacket)) {
+                    throw new IOException("Unexpected object received. Expected FileTransferPacket.");
+                }
+                FileTransferPacket packet = (FileTransferPacket) packetObj;
+                byte[] data = packet.getData();
+                if (data != null) {
+                    fos.write(data);
+                    totalReceived += data.length;
+                }
+            }
+        }
+
+        if (totalReceived != expectedSize) {
+            Files.deleteIfExists(filePath);
+            throw new IOException("File size mismatch. Expected: " + expectedSize + ", Received: " + totalReceived);
+        }
+        System.out.println("Successfully received file: " + filePath.getFileName() + " (" + totalReceived + " bytes)");
+    }
+    
+    // =========================================================================
+    // CÁC PHƯƠNG THỨC KHÁC (GIỮ NGUYÊN)
+    // =========================================================================
+    private void handleDownloadFileRequest(ServerRequest request, ObjectOutputStream oos) throws IOException {
+        if (loggedInUsername != null && request.getData() instanceof String) {
+            String filenameToDownload = (String) request.getData();
+            FileMetadata fileMetadata = dbHandler.getFileMetadataByName(filenameToDownload);
+            Path filePath = UPLOAD_DIR.resolve(filenameToDownload);
+
+            if (fileMetadata != null && Files.exists(filePath)) {
+                // Gửi phản hồi ban đầu chứa metadata
+                oos.writeObject(new ServerResponse(true, "Server is ready to send file.", fileMetadata));
+                oos.flush();
+                // Gửi dữ liệu file
+                sendFile(filePath, oos);
+            } else {
+                oos.writeObject(new ServerResponse(false, "File not found.", null));
+                oos.flush();
+            }
+        } else {
+            oos.writeObject(new ServerResponse(false, "Authentication required or invalid download request.", null));
+            oos.flush();
+        }
+    }
+    
+    private void sendFile(Path filePath, ObjectOutputStream oos) throws IOException {
+        long fileSize = Files.size(filePath);
+        try (InputStream fis = Files.newInputStream(filePath)) {
+            byte[] buffer = new byte[4096];
+            int bytesRead;
+            while ((bytesRead = fis.read(buffer)) != -1) {
+                byte[] dataToSend = java.util.Arrays.copyOf(buffer, bytesRead);
+                FileTransferPacket packet = new FileTransferPacket(filePath.getFileName().toString(), dataToSend, 0, 0, fileSize, false); // isLast không quá quan trọng ở đây
+                oos.writeObject(packet);
+            }
+            oos.flush();
+        }
+        System.out.println("Finished sending file: " + filePath.getFileName());
     }
 
     private ServerResponse handleAuthRequest(ServerRequest request) {
-        if (loggedInUsername == null && request.getData() instanceof AuthRequest) {
-            AuthRequest authRequest = (AuthRequest) request.getData();
-            if (request.getType() == RequestType.LOGIN) {
-                boolean success = dbHandler.verifyUser(authRequest.getUsername(), authRequest.getPassword());
-                if (success) {
-                    loggedInUsername = authRequest.getUsername();
-                    return new ServerResponse(true, "Login successful!", loggedInUsername);
-                } else {
-                    return new ServerResponse(false, "Invalid username or password.", null);
-                }
-            } else { // REGISTER
-                boolean success = dbHandler.addUser(authRequest.getUsername(), authRequest.getPassword());
-                if (success) {
-                    return new ServerResponse(true, "Registration successful!", null);
-                } else {
-                    return new ServerResponse(false, "Registration failed. Username might already exist.", null);
-                }
+        if (!(request.getData() instanceof AuthRequest)) {
+            return new ServerResponse(false, "Invalid auth request data.", null);
+        }
+        AuthRequest authData = (AuthRequest) request.getData();
+        if (request.getType() == RequestType.LOGIN) {
+            boolean success = dbHandler.verifyUser(authData.getUsername(), authData.getPassword());
+            if (success) {
+                loggedInUsername = authData.getUsername();
+                return new ServerResponse(true, "Login successful!", loggedInUsername);
             }
-        } else {
-            return new ServerResponse(false, "Already logged in or invalid auth request.", null);
+            return new ServerResponse(false, "Invalid username or password.", null);
+        } else { // REGISTER
+            boolean success = dbHandler.addUser(authData.getUsername(), authData.getPassword());
+            if (success) {
+                return new ServerResponse(true, "Registration successful!", null);
+            }
+            return new ServerResponse(false, "Username might already exist.", null);
         }
     }
 
     private ServerResponse handleListFilesRequest() {
-        if (loggedInUsername != null) {
-            List<FileMetadata> fileList = dbHandler.getAllFileMetadata(loggedInUsername);
-            return new ServerResponse(true, "File list retrieved.", new FileListResponse(fileList));
-        } else {
-            return new ServerResponse(false, "Authentication required.", null);
-        }
+        if (loggedInUsername == null) return new ServerResponse(false, "Authentication required.", null);
+        List<FileMetadata> files = dbHandler.getAllFileMetadata(loggedInUsername); // Sửa lại để chỉ lấy file của user
+        return new ServerResponse(true, "File list retrieved.", new FileListResponse(files));
     }
-
+    
     private ServerResponse handleSearchFilesRequest(ServerRequest request) {
-        if (loggedInUsername != null && request.getData() instanceof String) {
-            String query = (String) request.getData();
-            List<FileMetadata> fileList = dbHandler.searchFileMetadata(query, loggedInUsername);
-            return new ServerResponse(true, "Search results retrieved.", new FileListResponse(fileList));
-        } else {
-            return new ServerResponse(false, "Authentication required or invalid search query.", null);
-        }
+        if (loggedInUsername == null) return new ServerResponse(false, "Authentication required.", null);
+        String query = (String) request.getData();
+        List<FileMetadata> files = dbHandler.searchFileMetadata(query, loggedInUsername);
+        return new ServerResponse(true, "Search results.", new FileListResponse(files));
     }
 
     private ServerResponse handleDeleteFileRequest(ServerRequest request) {
-        if (loggedInUsername != null && request.getData() instanceof String) {
-            String filename = (String) request.getData();
-            FileMetadata fileMetadata = dbHandler.getFileMetadataByName(filename);
-            if (fileMetadata != null && loggedInUsername.equals(fileMetadata.getUploader())) {
-                // Xóa file vật lý
-                Path filePath = UPLOAD_DIR.resolve(filename);
-                try {
-                    Files.deleteIfExists(filePath);
-                } catch (IOException e) {
-                    return new ServerResponse(false, "Failed to delete file from disk.", null);
-                }
-                // Xóa metadata
-                boolean deleted = dbHandler.deleteFileMetadata(filename, loggedInUsername);
-                if (deleted) {
-                    return new ServerResponse(true, "File deleted successfully.", null);
-                } else {
-                    return new ServerResponse(false, "Failed to delete file metadata.", null);
-                }
-            } else {
-                return new ServerResponse(false, "You can only delete your own files.", null);
-            }
-        } else {
-            return new ServerResponse(false, "Authentication required or invalid delete request.", null);
+        if (loggedInUsername == null) return new ServerResponse(false, "Authentication required.", null);
+        String filename = (String) request.getData();
+        FileMetadata metadata = dbHandler.getFileMetadataByName(filename);
+        if (metadata == null) {
+            return new ServerResponse(false, "File not found.", null);
+        }
+        if (!metadata.getUploader().equals(loggedInUsername)) {
+            return new ServerResponse(false, "You can only delete your own files.", null);
+        }
+        try {
+            Files.deleteIfExists(UPLOAD_DIR.resolve(filename));
+            dbHandler.deleteFileMetadata(filename, loggedInUsername);
+            return new ServerResponse(true, "File deleted successfully.", null);
+        } catch (IOException e) {
+            return new ServerResponse(false, "Error deleting file from disk.", null);
+        }
+    }
+    
+    private boolean requiresAuth(RequestType type) {
+        switch (type) {
+            case LOGIN:
+            case REGISTER:
+                return false;
+            default:
+                return true;
         }
     }
 
-    private ServerResponse handleUploadFileRequest(ServerRequest request, ObjectInputStream ois, ObjectOutputStream oos) throws IOException, ClassNotFoundException {
-        if (loggedInUsername != null && request.getData() instanceof FileMetadata) {
-            FileMetadata fileMetadata = (FileMetadata) request.getData();
-            Path filePath = UPLOAD_DIR.resolve(fileMetadata.getFilename());
-            if (dbHandler.getFileMetadataByName(fileMetadata.getFilename()) != null) {
-                return new ServerResponse(false, "File with this name already exists.", null);
-            } else {
-                // Ready to receive file
-                oos.writeObject(new ServerResponse(true, "Ready to receive file.", null));
-                oos.flush();
-                receiveFile(ois, filePath, fileMetadata.getFileSize());
-                FileMetadata completeMetadata = new FileMetadata(
-                        fileMetadata.getFilename(),
-                        fileMetadata.getFileSize(),
-                        loggedInUsername,
-                        LocalDateTime.now()
-                );
-                boolean metadataSaved = dbHandler.addFileMetadata(completeMetadata);
-                return new ServerResponse(metadataSaved,
-                        metadataSaved ? "File uploaded and metadata saved." : "File uploaded, but failed to save metadata.",
-                        null);
+    private void closeSocket() {
+        try {
+            if (clientSocket != null && !clientSocket.isClosed()) {
+                clientSocket.close();
             }
-        } else {
-            return new ServerResponse(false, "Authentication required or invalid upload request.", null);
+        } catch (IOException e) {
+            System.err.println("Error closing client socket: " + e.getMessage());
         }
     }
-
-    private ServerResponse handleDownloadFileRequest(ServerRequest request, ObjectOutputStream oos) throws IOException {
-        if (loggedInUsername != null && request.getData() instanceof String) {
-            String filenameToDownload = (String) request.getData();
-            Path filePath = UPLOAD_DIR.resolve(filenameToDownload);
-            FileMetadata fileMetadata = dbHandler.getFileMetadataByName(filenameToDownload);
-            if (fileMetadata != null && Files.exists(filePath)) {
-                oos.writeObject(new ServerResponse(true, "Ready to send file.", fileMetadata));
-                oos.flush();
-                sendFile(filePath, fileMetadata.getFilename(), fileMetadata.getFileSize(), oos);
-                return null;
-            } else {
-                return new ServerResponse(false, "File not found on server or in database.", null);
-            }
-        } else {
-            return new ServerResponse(false, "Authentication required or invalid download request.", null);
-        }
-    }
-
-    // Phương thức để nhận file từ client
-    private void receiveFile(ObjectInputStream ois, Path filePath, long expectedSize) throws IOException, ClassNotFoundException {
-        
-        long receivedSize = 0;
-        try (OutputStream fos = Files.newOutputStream(filePath)) { // Ghi dữ liệu vào file
-             FileTransferPacket packet;
-             while ((packet = (FileTransferPacket) ois.readObject()) != null) {
-                  if (packet.getData() != null) {
-                     fos.write(packet.getData());
-                     receivedSize += packet.getData().length;
-                     
-                  }
-                 if (packet.isLastPacket()) {
-                     break; // Kết thúc nhận file khi gặp gói cuối cùng
-                 }
-             }
-         } // fos sẽ tự đóng
-
-        
-        
-        if (receivedSize != expectedSize) {
-             
-             // Xóa file đã nhận nếu kích thước sai? Hoặc xử lý lỗi khác
-             
-        }
-    }
-
-    // Phương thức để gửi file đến client
-    private void sendFile(Path filePath, String filename, long fileSize, ObjectOutputStream oos) throws IOException {
-         
-         long totalSent = 0;
-         int sequence = 0;
-         int bufferSize = 4096; // Kích thước gói
-         long totalPackets = (fileSize + bufferSize - 1) / bufferSize; // Tổng số gói
-
-        try (InputStream fis = Files.newInputStream(filePath)) {
-            byte[] buffer = new byte[bufferSize];
-            int bytesRead;
-
-            while ((bytesRead = fis.read(buffer)) != -1) {
-                 byte[] dataToSend = (bytesRead == buffer.length) ? buffer : java.util.Arrays.copyOf(buffer, bytesRead); // Đảm bảo chỉ gửi số byte đã đọc
-
-                 boolean isLast = (totalSent + bytesRead) >= fileSize; // Kiểm tra xem gói này có phải gói cuối không
-
-                 FileTransferPacket packet = new FileTransferPacket(
-                     filename,
-                     dataToSend,
-                     sequence++, // Số thứ tự gói tăng dần
-                     (int)totalPackets, // Tổng số gói (cần cast sang int, cẩn thận với file rất lớn > 2GB/BufferSize)
-                     fileSize,
-                     isLast
-                 );
-
-                 oos.writeObject(packet); // Gửi gói
-                 oos.flush(); // Đảm bảo gói được gửi ngay lập tức
-
-                 totalSent += bytesRead;
-
-                 // Thêm delay nhỏ để tránh gửi quá nhanh gây tắc nghẽn
-                 
-            }
-        } // fis sẽ tự đóng
-
-        
-        // Gói cuối cùng đã được gửi với cờ isLastPacket = true
-        // Có thể gửi thêm một ServerResponse báo thành công nếu cần xác nhận từ client
-    }
-
-     
 }

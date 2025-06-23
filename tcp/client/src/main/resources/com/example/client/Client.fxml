@@ -3,8 +3,11 @@
 <?import javafx.geometry.Insets?>
 <?import javafx.scene.control.Button?>
 <?import javafx.scene.control.Label?>
+<?import javafx.scene.control.ProgressBar?>
+<?import javafx.scene.control.TableColumn?>
 <?import javafx.scene.control.TableView?>
 <?import javafx.scene.control.TextField?>
+<?import javafx.scene.control.cell.PropertyValueFactory?>
 <?import javafx.scene.effect.GaussianBlur?>
 <?import javafx.scene.image.Image?>
 <?import javafx.scene.image.ImageView?>
@@ -13,11 +16,9 @@
 <?import javafx.scene.layout.StackPane?>
 <?import javafx.scene.layout.VBox?>
 <?import javafx.scene.text.Font?>
-<?import javafx.scene.control.ProgressBar?>
-<?import javafx.scene.control.TableColumn?>
-<?import javafx.scene.control.cell.PropertyValueFactory?>
 
 <!-- Root StackPane: Lấp đầy cửa sổ -->
+
 <StackPane xmlns="http://javafx.com/javafx/23.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.example.client.ClientController">
 
     <!-- Lớp 1: Background Image with Blur -->
@@ -33,7 +34,7 @@
         </effect>
         <!-- Sử dụng Insets 0 để lấp đầy -->
          <StackPane.margin>
-             <Insets top="0" right="0" bottom="0" left="0"/>
+             <Insets bottom="0" left="0" right="0" top="0" />
          </StackPane.margin>
     </ImageView>
 
@@ -43,7 +44,7 @@
         <!-- Phần TOP: Tiêu đề và Nút Log Out -->
         <top>
             <HBox alignment="CENTER_LEFT" prefHeight="80.0" style="-fx-background-color: rgba(0, 0, 0, 0.7);">
-                 <padding> <Insets top="10" bottom="10" left="20" right="20"/> </padding>
+                 <padding> <Insets bottom="10" left="20" right="20" top="10" /> </padding>
                 <!-- VBox chứa Label title và welcome, co giãn ngang -->
                 <VBox alignment="CENTER_LEFT" HBox.hgrow="ALWAYS">
                     <Label text="Manage Files" textFill="WHITE">
@@ -58,7 +59,7 @@
                     </Label>
                 </VBox>
                 <!-- Nút Log Out -->
-                <Button text="Log Out" onAction="#handleLogout" stylesheets="@styling/fullPackStyling.css" HBox.hgrow="NEVER"/> <!-- Nút không co giãn ngang -->
+                <Button onAction="#handleLogout" stylesheets="@styling/fullPackStyling.css" text="Log Out" HBox.hgrow="NEVER" /> <!-- Nút không co giãn ngang -->
                  <HBox.margin>
                      <Insets left="20" />
                  </HBox.margin>
@@ -68,36 +69,42 @@
         <!-- Phần CENTER: Khu vực quản lý file -->
         <center>
             <!-- VBox ở Center: Chứa các control file management -->
-            <VBox spacing="10" alignment="TOP_CENTER">
+            <VBox alignment="TOP_CENTER" spacing="10">
             <padding>
-                <Insets top="20.0" right="20.0" bottom="20.0" left="20.0" />
+                <Insets bottom="20.0" left="20.0" right="20.0" top="20.0" />
             </padding>
-                 <!-- HBox chứa ProgressBar -->
-                 <!-- HBox này sẽ co giãn ngang, và ProgressBar bên trong cũng co giãn ngang -->
-                 <HBox alignment="CENTER_LEFT">
-                     <ProgressBar fx:id="progressBar" prefWidth="300" visible="false" HBox.hgrow="ALWAYS"/>
-                 </HBox>
 
                 <!-- HBox chứa Tìm kiếm, Refresh, Select File -->
-                <HBox spacing="10" alignment="CENTER_LEFT">
+                <HBox alignment="CENTER_LEFT" prefHeight="70.0" prefWidth="1598.0" spacing="10">
                      <!-- TextField tìm kiếm: co giãn ngang -->
-                     <TextField fx:id="searchField" promptText="Search filename or uploader" prefWidth="300" HBox.hgrow="ALWAYS"/>
-                     <!-- Nút Refresh: không co giãn -->
-                     <Button text="Refresh" onAction="#handleRefresh" prefWidth="100" stylesheets="@styling/fullPackStyling.css" HBox.hgrow="NEVER"/>
-                     <!-- Nút Select File: không co giãn -->
-                     <Button text="Select File" onAction="#handleSelectFile" prefWidth="100" stylesheets="@styling/fullPackStyling.css" HBox.hgrow="NEVER"/>
+                     <TextField fx:id="searchField" prefHeight="46.0" prefWidth="1599.0" promptText="Search filename or uploader" HBox.hgrow="ALWAYS">
+                  <font>
+                     <Font size="14.0" />
+                  </font></TextField>
                 </HBox>
+                  <!-- TextField download: co giãn ngang -->
+                  <TextField fx:id="downloadFilenameField" prefHeight="48.0" prefWidth="1600.0" promptText="Enter filename to download">
+               <font>
+                  <Font size="14.0" />
+               </font>
+            </TextField>
 
                  <!-- HBox chứa Download Field và Download/Upload nút -->
-                 <HBox spacing="10" alignment="CENTER_LEFT">
-                     <!-- TextField download: co giãn ngang -->
-                     <TextField fx:id="downloadFilenameField" promptText="Enter filename to download" prefWidth="300" HBox.hgrow="ALWAYS"/>
-                     <!-- Nút Download: không co giãn -->
-                     <Button fx:id="downloadButton" text="Download" onAction="#handleDownload" prefWidth="100" stylesheets="@styling/fullPackStyling.css" HBox.hgrow="NEVER"/>
-                     <!-- Nút Upload Selected: không co giãn -->
-                     <Button fx:id="deleteButton" text="Delete" onAction="#handleDelete" prefWidth="100" stylesheets="@styling/fullPackStyling.css" HBox.hgrow="NEVER"/>
-                     <Button fx:id="uploadButton" text="Upload" onAction="#handleUpload" prefWidth="100" stylesheets="@styling/fullPackStyling.css" disable="true" HBox.hgrow="NEVER"/>
-                 </HBox>
+                 <HBox alignment="CENTER_LEFT" spacing="10" />
+            <HBox prefHeight="29.0" prefWidth="1564.0" spacing="25.0">
+               <children>
+                        <!-- Nút Refresh: không co giãn -->
+                        <Button onAction="#handleRefresh" prefWidth="100" stylesheets="@styling/fullPackStyling.css" text="Refresh" HBox.hgrow="NEVER" />
+                        <!-- Nút Select File: không co giãn -->
+                        <Button onAction="#handleSelectFile" prefWidth="100" stylesheets="@styling/fullPackStyling.css" text="Select File" HBox.hgrow="NEVER" />
+                        <Button fx:id="uploadButton" disable="true" onAction="#handleUpload" prefWidth="100" stylesheets="@styling/fullPackStyling.css" text="Upload" HBox.hgrow="NEVER" />
+                        <!-- Nút Download: không co giãn -->
+                        <Button fx:id="downloadButton" onAction="#handleDownload" prefWidth="100" stylesheets="@styling/fullPackStyling.css" text="Download" HBox.hgrow="NEVER" />
+                        <!-- Nút Upload Selected: không co giãn -->
+                        <Button fx:id="deleteButton" onAction="#handleDelete" prefWidth="100" stylesheets="@styling/fullPackStyling.css" text="Delete" HBox.hgrow="NEVER" />
+                        <ProgressBar fx:id="progressBar" prefWidth="300" visible="false" HBox.hgrow="ALWAYS" />
+               </children>
+            </HBox>
 
 
                 <!-- TableView để hiển thị danh sách file -->

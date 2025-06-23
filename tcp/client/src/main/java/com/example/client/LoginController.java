@@ -66,6 +66,8 @@ public class LoginController {
                 String loggedInUsername = (String) loginResponse.getData();
                 App.showAlert("Login Successful", loginResponse.getMessage());
 
+                serverClient.setUserPassword(password);
+                
                 Stage stage = (Stage)usernameField.getScene().getWindow();
                 FXMLLoader loader = new FXMLLoader(getClass().getResource("Client.fxml"));
                 Parent mainAppRoot = loader.load();

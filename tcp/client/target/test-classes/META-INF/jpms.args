@@ -1,0 +1,4 @@
+--patch-module
+com.example.client=_
+--add-reads
+com.example.client=ALL-UNNAMED

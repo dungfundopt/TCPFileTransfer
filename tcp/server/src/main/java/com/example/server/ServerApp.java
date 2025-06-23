@@ -14,7 +14,7 @@ public class ServerApp {
     public static void main(String[] args) {
         // Khởi tạo DatabaseHandler một lần khi Server khởi động
         DatabaseHandler dbHandler = new DatabaseHandler();
-
+        dbHandler.createNewTables();
         // Tạo Thread Pool để xử lý nhiều client cùng lúc
         ExecutorService executor = Executors.newFixedThreadPool(THREAD_POOL_SIZE);
 
