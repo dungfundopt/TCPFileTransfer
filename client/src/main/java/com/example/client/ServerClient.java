@@ -193,13 +193,22 @@ public class ServerClient implements Closeable {
 
         File encryptedTempFile = null;
         try {
-            encryptedTempFile = File.createTempFile("enc_upload_", ".tmp");
+            // Use user temp directory and set secure permissions
+            File tempDir = new File(System.getProperty("java.io.tmpdir"));
+            encryptedTempFile = Files.createTempFile(
+                    tempDir.toPath(),
+                    "enc_upload_",
+                    ".tmp"
+            ).toFile();
+            encryptedTempFile.setReadable(true, true);
+            encryptedTempFile.setWritable(true, true);
+            encryptedTempFile.setExecutable(false, false);
+
             encryptFile(fileToSend, encryptedTempFile, this.userPassword);
             return uploadEncryptedFile(encryptedTempFile, fileToSend.getName(), progressCallback);
         } catch (Exception e) {
             throw new FileEncryptionException("Top-level upload process failed.", e);
-        }
-        finally {
+        } finally {
             if (encryptedTempFile != null) {
                 try {
                     Files.deleteIfExists(encryptedTempFile.toPath());
@@ -209,7 +218,7 @@ public class ServerClient implements Closeable {
             }
         }
     }
-    
+
     @SuppressWarnings("exports")
     public FileMetadata downloadFile(String filenameToDownload, File saveFile, BiConsumer<Long, Long> progressCallback) throws FileDecryptionException {
         if (this.userPassword == null || this.userPassword.isEmpty()) {
@@ -218,14 +227,23 @@ public class ServerClient implements Closeable {
 
         File encryptedTempFile = null;
         try {
-            encryptedTempFile = File.createTempFile("enc_down_", ".tmp");
+            // Use user temp directory and set secure permissions
+            File tempDir = new File(System.getProperty("java.io.tmpdir"));
+            encryptedTempFile = Files.createTempFile(
+                    tempDir.toPath(),
+                    "enc_down_",
+                    ".tmp"
+            ).toFile();
+            encryptedTempFile.setReadable(true, true);
+            encryptedTempFile.setWritable(true, true);
+            encryptedTempFile.setExecutable(false, false);
+
             FileMetadata meta = downloadEncryptedFile(filenameToDownload, encryptedTempFile, progressCallback);
             decryptFile(encryptedTempFile, saveFile, this.userPassword);
             return meta;
         } catch (Exception e) {
             throw new FileDecryptionException("Top-level download process failed.", e);
-        }
-        finally {
+        } finally {
             if (encryptedTempFile != null) {
                 try {
                     Files.deleteIfExists(encryptedTempFile.toPath());
@@ -491,45 +509,3 @@ public class ServerClient implements Closeable {
     }
 }
 
-
-// --- CÁC LỚP EXCEPTION ---
-
-class ServerUploadException extends Exception {
-    public ServerUploadException(String message) {
-        super(message);
-    }
-}
-
-class ServerDownloadException extends Exception {
-    public ServerDownloadException(String message) {
-        super(message);
-    }
-}
-
-class KeyDerivationException extends Exception {
-    public KeyDerivationException(String message, Throwable cause) {
-        super(message, cause);
-    }
-}
-
-class FileTransferException extends Exception {
-    public FileTransferException(String message) {
-        super(message);
-    }
-    public FileTransferException(String message, Throwable cause) {
-        super(message, cause);
-    }
-}
-
-class FileEncryptionException extends Exception {
-    public FileEncryptionException(String message, Throwable cause) {
-        super(message, cause);
-    }
-}
-
-// Thêm Exception mới cho việc giải mã để xử lý lỗi tốt hơn
-class FileDecryptionException extends Exception {
-    public FileDecryptionException(String message, Throwable cause) {
-        super(message, cause);
-    }
-}
