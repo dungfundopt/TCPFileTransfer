@@ -95,10 +95,8 @@ public class ClientHandler implements Runnable {
 
     private void handleDefaultRequest(ServerRequest request, ObjectOutputStream oos) throws IOException {
         ServerResponse response = handleSimpleRequest(request);
-        if (response != null) {
             oos.writeObject(response);
             oos.flush();
-        }
     }
 
     // Xử lý các yêu cầu đơn giản trả về một ServerResponse ngay lập tức
