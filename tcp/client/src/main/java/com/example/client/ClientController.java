@@ -53,7 +53,6 @@ public class ClientController {
     @FXML
     private TextField downloadFilenameField;
 
-    @SuppressWarnings("unused")
     private String loggedInUsername;
     private File selectedFileForUpload;
 
@@ -211,7 +210,7 @@ public class ClientController {
             App.showAlert("Delete Failed", response != null ? response.getMessage() : "Unknown error.");
         }
     }
-    
+
     @FXML
     @SuppressWarnings("unused")
     void handleUpload(ActionEvent event) {

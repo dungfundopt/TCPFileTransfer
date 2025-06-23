@@ -20,67 +20,92 @@ import com.example.shared.FileTransferPacket;
 import com.example.shared.RequestType;
 import com.example.shared.ServerRequest;
 import com.example.shared.ServerResponse;
-
+import java.util.logging.*;
 public class ClientHandler implements Runnable {
     private Socket clientSocket;
     private DatabaseHandler dbHandler;
     private static final Path UPLOAD_DIR = Paths.get("uploads");
     private String loggedInUsername = null;
-
+    public static final String AUTHENTICATION_REQUIRED = "Authentication required.";
+    private static final Logger logger = Logger.getLogger(ClientHandler.class.getName());
     public ClientHandler(Socket socket, DatabaseHandler dbHandler) {
         this.clientSocket = socket;
         this.dbHandler = dbHandler;
         try {
             Files.createDirectories(UPLOAD_DIR);
         } catch (IOException e) {
-            System.err.println("Could not create upload directory: " + e.getMessage());
+            logger.severe("An error directory occurred");
         }
     }
 
     @Override
     public void run() {
-        // Luồng I/O được quản lý trong try-with-resources
         try (ObjectOutputStream oos = new ObjectOutputStream(clientSocket.getOutputStream());
-             ObjectInputStream ois = new ObjectInputStream(clientSocket.getInputStream())) {
-            
-            // Vòng lặp chính để xử lý các yêu cầu từ client
-            while (clientSocket.isConnected() && !clientSocket.isClosed()) {
-                ServerRequest request = (ServerRequest) ois.readObject();
+            ObjectInputStream ois = new ObjectInputStream(clientSocket.getInputStream())) {
 
-                // THAY ĐỔI QUAN TRỌNG:
-                // Đối với UPLOAD_FILE và DOWNLOAD_FILE, chúng ta xử lý hoàn toàn trong các phương thức riêng
-                // và không mong đợi một ServerResponse trả về từ handleRequest.
-                if (request.getType() == RequestType.UPLOAD_FILE) {
-                    handleUploadFileRequest(request, ois, oos);
-                } else if (request.getType() == RequestType.DOWNLOAD_FILE) {
-                    handleDownloadFileRequest(request, oos);
+            boolean running = true;
+            while (clientSocket.isConnected() && !clientSocket.isClosed() && running) {
+                ServerRequest request = readRequest(ois);
+                if (request == null) {
+                    running = false;
                 } else {
-                    // Đối với các yêu cầu đơn giản khác, chúng ta nhận và gửi phản hồi
-                    ServerResponse response = handleSimpleRequest(request);
-                    if (response != null) {
-                        oos.writeObject(response);
-                        oos.flush();
-                    }
-                }
-
-                // Nếu là yêu cầu LOGOUT hoặc client chưa đăng nhập (đối với các yêu cầu cần auth), ngắt vòng lặp
-                if (request.getType() == RequestType.LOGOUT || (loggedInUsername == null && requiresAuth(request.getType()))) {
-                    break;
+                    running = !handleRequest(request, ois, oos);
                 }
             }
-        } catch (IOException | ClassNotFoundException e) {
-            // Lỗi giao tiếp hoặc client ngắt kết nối đột ngột
-            System.out.println("Client " + (loggedInUsername != null ? loggedInUsername : clientSocket.getInetAddress()) + " disconnected.");
+        } catch (IOException e) {
+            logger.info("Client " + (loggedInUsername != null ? loggedInUsername : clientSocket.getInetAddress()) + " disconnected.");
         } finally {
             closeSocket();
+        }
+    }
+
+    private ServerRequest readRequest(ObjectInputStream ois) {
+        try {
+            return (ServerRequest) ois.readObject();
+        } catch (IOException | ClassNotFoundException e) {
+            logger.warning("Failed to read request: " + e.getMessage());
+            return null;
+        }
+    }
+
+    private boolean handleRequest(ServerRequest request, ObjectInputStream ois, ObjectOutputStream oos) {
+        try {
+            switch (request.getType()) {
+                case UPLOAD_FILE:
+                    handleUploadFileRequest(request, ois, oos);
+                    break;
+                case DOWNLOAD_FILE:
+                    handleDownloadFileRequest(request, oos);
+                    break;
+                default:
+                    handleDefaultRequest(request, oos);
+                    break;
+            }
+        } catch (Exception e) {
+            logger.severe("Error handling request: " + e.getMessage());
+            try {
+                oos.writeObject(new ServerResponse(false, "Server error: " + e.getMessage(), null));
+                oos.flush();
+            } catch (IOException ioException) {
+                logger.severe("Failed to send error response to client: " + ioException.getMessage());
+            }
+        }
+        return request.getType() == RequestType.LOGOUT || (loggedInUsername == null && requiresAuth(request.getType()));
+    }
+
+    private void handleDefaultRequest(ServerRequest request, ObjectOutputStream oos) throws IOException {
+        ServerResponse response = handleSimpleRequest(request);
+        if (response != null) {
+            oos.writeObject(response);
+            oos.flush();
         }
     }
 
     // Xử lý các yêu cầu đơn giản trả về một ServerResponse ngay lập tức
     private ServerResponse handleSimpleRequest(ServerRequest request) {
         switch (request.getType()) {
-            case LOGIN:
-            case REGISTER:
+            
+            case LOGIN, REGISTER:
                 return handleAuthRequest(request);
             case LIST_FILES:
                 return handleListFilesRequest();
@@ -237,20 +262,20 @@ public class ClientHandler implements Runnable {
     }
 
     private ServerResponse handleListFilesRequest() {
-        if (loggedInUsername == null) return new ServerResponse(false, "Authentication required.", null);
+        if (loggedInUsername == null) return new ServerResponse(false, AUTHENTICATION_REQUIRED, null);
         List<FileMetadata> files = dbHandler.getAllFileMetadata(loggedInUsername); // Sửa lại để chỉ lấy file của user
         return new ServerResponse(true, "File list retrieved.", new FileListResponse(files));
     }
     
     private ServerResponse handleSearchFilesRequest(ServerRequest request) {
-        if (loggedInUsername == null) return new ServerResponse(false, "Authentication required.", null);
+        if (loggedInUsername == null) return new ServerResponse(false, AUTHENTICATION_REQUIRED, null);
         String query = (String) request.getData();
         List<FileMetadata> files = dbHandler.searchFileMetadata(query, loggedInUsername);
         return new ServerResponse(true, "Search results.", new FileListResponse(files));
     }
 
     private ServerResponse handleDeleteFileRequest(ServerRequest request) {
-        if (loggedInUsername == null) return new ServerResponse(false, "Authentication required.", null);
+        if (loggedInUsername == null) return new ServerResponse(false, AUTHENTICATION_REQUIRED, null);
         String filename = (String) request.getData();
         FileMetadata metadata = dbHandler.getFileMetadataByName(filename);
         if (metadata == null) {
