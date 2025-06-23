@@ -15,6 +15,11 @@
 
     <dependencies>
         <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-simple</artifactId>
+            <version>1.7.32</version> <!-- Hoặc phiên bản mới hơn, nên khớp với slf4j-api -->
+        </dependency>
+        <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>shared</artifactId>
         </dependency>
