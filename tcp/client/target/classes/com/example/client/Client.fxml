@@ -95,6 +95,7 @@
                      <!-- Nút Download: không co giãn -->
                      <Button fx:id="downloadButton" text="Download" onAction="#handleDownload" prefWidth="100" stylesheets="@styling/fullPackStyling.css" HBox.hgrow="NEVER"/>
                      <!-- Nút Upload Selected: không co giãn -->
+                     <Button fx:id="deleteButton" text="Delete" onAction="#handleDelete" prefWidth="100" stylesheets="@styling/fullPackStyling.css" HBox.hgrow="NEVER"/>
                      <Button fx:id="uploadButton" text="Upload" onAction="#handleUpload" prefWidth="100" stylesheets="@styling/fullPackStyling.css" disable="true" HBox.hgrow="NEVER"/>
                  </HBox>
 

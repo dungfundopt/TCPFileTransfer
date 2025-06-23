@@ -219,38 +219,29 @@ public class DatabaseHandler {
      * @return Danh sách FileMetadata, trả về danh sách rỗng nếu không có file hoặc có lỗi.
      */
     @SuppressWarnings("CallToPrintStackTrace")
-    public List<FileMetadata> getAllFileMetadata() {
-        String sql = String.format(
-            "SELECT %s, %s, %s, %s FROM %s ORDER BY %s DESC",
-            FILE_COLUMN_FILENAME,
-            FILE_COLUMN_SIZE,
-            FILE_COLUMN_UPLOADER,
-            FILE_COLUMN_UPLOAD_TIME,
-            TABLE_FILES,
-            FILE_COLUMN_UPLOAD_TIME
-        );
-
-        List<FileMetadata> fileList = new ArrayList<>();
-        try (Connection conn = connect();
-             Statement stmt = conn.createStatement();
-             ResultSet rs = stmt.executeQuery(sql)) { // Dùng executeQuery cho SQL_SELECT
-
-            while (rs.next()) {
-                String filename = rs.getString(FILE_COLUMN_FILENAME);
-                long fileSize = rs.getLong(FILE_COLUMN_SIZE);
-                String uploader = rs.getString(FILE_COLUMN_UPLOADER);
-                // Chuyển java.sql.Timestamp sang LocalDateTime
-                LocalDateTime uploadTime = rs.getTimestamp(FILE_COLUMN_UPLOAD_TIME).toLocalDateTime();
-
-                fileList.add(new FileMetadata(filename, fileSize, uploader, uploadTime));
+    public List<FileMetadata> getAllFileMetadata(String username) {
+            String sql = String.format(
+                "SELECT %s, %s, %s, %s FROM %s WHERE %s = ? ORDER BY %s DESC",
+                FILE_COLUMN_FILENAME, FILE_COLUMN_SIZE, FILE_COLUMN_UPLOADER, FILE_COLUMN_UPLOAD_TIME,
+                TABLE_FILES, FILE_COLUMN_UPLOADER, FILE_COLUMN_UPLOAD_TIME
+            );
+            List<FileMetadata> fileList = new ArrayList<>();
+            try (Connection conn = connect();
+                PreparedStatement pstmt = conn.prepareStatement(sql)) {
+                pstmt.setString(1, username);
+                ResultSet rs = pstmt.executeQuery();
+                while (rs.next()) {
+                    String filename = rs.getString(FILE_COLUMN_FILENAME);
+                    long fileSize = rs.getLong(FILE_COLUMN_SIZE);
+                    String uploader = rs.getString(FILE_COLUMN_UPLOADER);
+                    LocalDateTime uploadTime = rs.getTimestamp(FILE_COLUMN_UPLOAD_TIME).toLocalDateTime();
+                    fileList.add(new FileMetadata(filename, fileSize, uploader, uploadTime));
+                }
+            } catch (SQLException e) {
+                LOGGER.log(Level.SEVERE, dtberror, e);
             }
-
-        } catch (SQLException e) {
-            LOGGER.log(Level.SEVERE, dtberror, e);
-             
+            return fileList;
         }
-        return fileList;
-    }
 
      /**
      * Tìm kiếm thông tin file theo tên trong database.
@@ -258,37 +249,32 @@ public class DatabaseHandler {
      * @return Danh sách FileMetadata khớp với tìm kiếm.
      */
     @SuppressWarnings("CallToPrintStackTrace")
-    public List<FileMetadata> searchFileMetadata(String query) {
-        // Sử dụng LIKE để tìm kiếm gần đúng, UPPER để không phân biệt hoa/thường
-        String sql = "SQL_SELECT " + FILE_COLUMN_FILENAME + ", " + FILE_COLUMN_SIZE + ", " + FILE_COLUMN_UPLOADER + ", " + FILE_COLUMN_UPLOAD_TIME +
-                     " FROM " + TABLE_FILES +
-                     " WHERE UPPER(" + FILE_COLUMN_FILENAME + ") LIKE ? OR UPPER(" + FILE_COLUMN_UPLOADER + ") LIKE ?" + // Tìm kiếm theo tên file hoặc tên uploader
-                     " ORDER BY " + FILE_COLUMN_UPLOAD_TIME + " DESC";
-
-        List<FileMetadata> fileList = new ArrayList<>();
-        try (Connection conn = connect();
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
-            // Đặt giá trị cho dấu hỏi, thêm % cho LIKE
-            pstmt.setString(1, "%" + query.toUpperCase() + "%");
-             pstmt.setString(2, "%" + query.toUpperCase() + "%");
-
-            ResultSet rs = pstmt.executeQuery();
-
-            while (rs.next()) {
-                String filename = rs.getString(FILE_COLUMN_FILENAME);
-                long fileSize = rs.getLong(FILE_COLUMN_SIZE);
-                String uploader = rs.getString(FILE_COLUMN_UPLOADER);
-                LocalDateTime uploadTime = rs.getTimestamp(FILE_COLUMN_UPLOAD_TIME).toLocalDateTime();
-
-                fileList.add(new FileMetadata(filename, fileSize, uploader, uploadTime));
+    public List<FileMetadata> searchFileMetadata(String query, String username) {
+            String sql = "SELECT " + FILE_COLUMN_FILENAME + ", " + FILE_COLUMN_SIZE + ", " + FILE_COLUMN_UPLOADER + ", " + FILE_COLUMN_UPLOAD_TIME +
+                        " FROM " + TABLE_FILES +
+                        " WHERE (" +
+                        "UPPER(" + FILE_COLUMN_FILENAME + ") LIKE ? OR UPPER(" + FILE_COLUMN_UPLOADER + ") LIKE ?" +
+                        ") AND " + FILE_COLUMN_UPLOADER + " = ?" +
+                        " ORDER BY " + FILE_COLUMN_UPLOAD_TIME + " DESC";
+            List<FileMetadata> fileList = new ArrayList<>();
+            try (Connection conn = connect();
+                PreparedStatement pstmt = conn.prepareStatement(sql)) {
+                pstmt.setString(1, "%" + query.toUpperCase() + "%");
+                pstmt.setString(2, "%" + query.toUpperCase() + "%");
+                pstmt.setString(3, username);
+                ResultSet rs = pstmt.executeQuery();
+                while (rs.next()) {
+                    String filename = rs.getString(FILE_COLUMN_FILENAME);
+                    long fileSize = rs.getLong(FILE_COLUMN_SIZE);
+                    String uploader = rs.getString(FILE_COLUMN_UPLOADER);
+                    LocalDateTime uploadTime = rs.getTimestamp(FILE_COLUMN_UPLOAD_TIME).toLocalDateTime();
+                    fileList.add(new FileMetadata(filename, fileSize, uploader, uploadTime));
+                }
+            } catch (SQLException e) {
+                LOGGER.log(Level.SEVERE, dtberror, e);
             }
-
-        } catch (SQLException e) {
-            LOGGER.log(Level.SEVERE, dtberror, e);
-             
+            return fileList;
         }
-        return fileList;
-    }
 
      /**
       * Lấy thông tin file theo tên file chính xác.
@@ -319,5 +305,16 @@ public class DatabaseHandler {
           return null; // Không tìm thấy
      }
 
-     
+     public boolean deleteFileMetadata(String filename, String username) {
+            String sql = "DELETE FROM " + TABLE_FILES + " WHERE " + FILE_COLUMN_FILENAME + " = ? AND " + FILE_COLUMN_UPLOADER + " = ?";
+            try (Connection conn = connect();
+                PreparedStatement pstmt = conn.prepareStatement(sql)) {
+                pstmt.setString(1, filename);
+                pstmt.setString(2, username);
+                return pstmt.executeUpdate() > 0;
+            } catch (SQLException e) {
+                LOGGER.log(Level.SEVERE, "Lỗi khi xóa file: ", e);
+                return false;
+            }
+        }
 }

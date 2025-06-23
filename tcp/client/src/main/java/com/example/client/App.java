@@ -19,7 +19,7 @@ public class App extends Application {
     public void start(@SuppressWarnings("exports") Stage stage) throws IOException {
     // Load icon
     try {
-        Image icon = new Image(getClass().getResourceAsStream("/icon.png")); // Sửa lỗi chính tả getResourceAsStream
+        Image icon = new Image(getClass().getResourceAsStream("/com/example/client/images/icon.png")); // Sửa lỗi chính tả getResourceAsStream
         stage.getIcons().add(icon); // Sửa lỗi chính tả getIcons
     } catch (Exception e) {
         

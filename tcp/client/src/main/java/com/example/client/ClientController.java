@@ -44,6 +44,8 @@ public class ClientController {
     @FXML
     private Button uploadButton;
     @FXML
+    private Button deleteButton;
+    @FXML
     private TableView<FileMetadata> fileTableView;
     @FXML
     private ProgressBar progressBar;
@@ -118,12 +120,14 @@ public class ClientController {
             if (newSelection != null) {
                 downloadFilenameField.setText(newSelection.getFilename());
                 downloadButton.setDisable(false);
+                deleteButton.setDisable(!loggedInUsername.equals(newSelection.getUploader()));
             } else {
                 downloadFilenameField.setText("");
-                 downloadButton.setDisable(true);
+                downloadButton.setDisable(true);
+                deleteButton.setDisable(true);
             }
         });
-
+        deleteButton.setDisable(true);
         downloadButton.setDisable(true);
         uploadButton.setDisable(true);
         progressBar.setVisible(false);
@@ -188,7 +192,26 @@ public class ClientController {
         }
     }
 
-
+    @FXML
+    void handleDelete(ActionEvent event) {
+        FileMetadata selected = fileTableView.getSelectionModel().getSelectedItem();
+        if (selected == null) {
+            App.showAlert("Delete Error", "No file selected.");
+            return;
+        }
+        if (!loggedInUsername.equals(selected.getUploader())) {
+            App.showAlert("Delete Error", "You can only delete your own files.");
+            return;
+        }
+        ServerResponse response = serverClient.deleteFile(selected.getFilename());
+        if (response != null && response.isSuccess()) {
+            App.showAlert("Delete Success", response.getMessage());
+            loadFileList();
+        } else {
+            App.showAlert("Delete Failed", response != null ? response.getMessage() : "Unknown error.");
+        }
+    }
+    
     @FXML
     @SuppressWarnings("unused")
     void handleUpload(ActionEvent event) {

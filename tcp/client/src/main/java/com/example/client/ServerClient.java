@@ -289,6 +289,16 @@ public class ServerClient implements Closeable {
            }
            return (ServerResponse) finalReceived;
        }
+    
+
+    @SuppressWarnings("exports")
+    public ServerResponse deleteFile(String filename) {
+        if (!isConnected || loggedInUsername == null) {
+            return new ServerResponse(false, "Not connected or not logged in.", null);
+        }
+        ServerRequest request = new ServerRequest(RequestType.DELETE_FILE, filename);
+        return sendAndReceive(request);
+    }
 
         /**
          * Tải file từ Server, báo cáo tiến độ. Phải chạy trong luồng nền.

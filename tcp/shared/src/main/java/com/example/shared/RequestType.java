@@ -14,6 +14,6 @@ public enum RequestType implements Serializable {
     SEARCH_FILES,
     UPLOAD_FILE,
     DOWNLOAD_FILE,
-
+    DELETE_FILE, // This is a placeholder for future use
     // Maybe others later like DELETE_FILE, RENAME_FILE...
 }

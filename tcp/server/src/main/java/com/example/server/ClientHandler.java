@@ -87,6 +87,9 @@ public class ClientHandler implements Runnable {
             case DOWNLOAD_FILE -> {
                 return handleDownloadFileRequest(request, oos);
             }
+            case DELETE_FILE -> {
+                return handleDeleteFileRequest(request);
+            }
             case LOGOUT -> {
                 loggedInUsername = null;
                 return new ServerResponse(true, "Logged out successfully.", null);
@@ -129,7 +132,7 @@ public class ClientHandler implements Runnable {
 
     private ServerResponse handleListFilesRequest() {
         if (loggedInUsername != null) {
-            List<FileMetadata> fileList = dbHandler.getAllFileMetadata();
+            List<FileMetadata> fileList = dbHandler.getAllFileMetadata(loggedInUsername);
             return new ServerResponse(true, "File list retrieved.", new FileListResponse(fileList));
         } else {
             return new ServerResponse(false, "Authentication required.", null);
@@ -139,10 +142,37 @@ public class ClientHandler implements Runnable {
     private ServerResponse handleSearchFilesRequest(ServerRequest request) {
         if (loggedInUsername != null && request.getData() instanceof String) {
             String query = (String) request.getData();
-            List<FileMetadata> fileList = dbHandler.searchFileMetadata(query);
+            List<FileMetadata> fileList = dbHandler.searchFileMetadata(query, loggedInUsername);
             return new ServerResponse(true, "Search results retrieved.", new FileListResponse(fileList));
         } else {
             return new ServerResponse(false, "Authentication required or invalid search query.", null);
+        }
+    }
+
+    private ServerResponse handleDeleteFileRequest(ServerRequest request) {
+        if (loggedInUsername != null && request.getData() instanceof String) {
+            String filename = (String) request.getData();
+            FileMetadata fileMetadata = dbHandler.getFileMetadataByName(filename);
+            if (fileMetadata != null && loggedInUsername.equals(fileMetadata.getUploader())) {
+                // Xóa file vật lý
+                Path filePath = UPLOAD_DIR.resolve(filename);
+                try {
+                    Files.deleteIfExists(filePath);
+                } catch (IOException e) {
+                    return new ServerResponse(false, "Failed to delete file from disk.", null);
+                }
+                // Xóa metadata
+                boolean deleted = dbHandler.deleteFileMetadata(filename, loggedInUsername);
+                if (deleted) {
+                    return new ServerResponse(true, "File deleted successfully.", null);
+                } else {
+                    return new ServerResponse(false, "Failed to delete file metadata.", null);
+                }
+            } else {
+                return new ServerResponse(false, "You can only delete your own files.", null);
+            }
+        } else {
+            return new ServerResponse(false, "Authentication required or invalid delete request.", null);
         }
     }
 
