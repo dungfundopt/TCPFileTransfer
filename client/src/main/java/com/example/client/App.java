@@ -5,34 +5,33 @@ import java.io.IOException;
 import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.fxml.FXMLLoader;
-import javafx.scene.Parent; // Cần import Alert
+import javafx.scene.Parent; 
 import javafx.scene.Scene;
 import javafx.scene.control.Alert;
-import javafx.scene.image.Image; // Cần import Platform
-import javafx.stage.Stage; // Cần import Image
+import javafx.scene.image.Image; 
+import javafx.stage.Stage; 
 
 public class App extends Application {
 
-    private static Stage primaryStage; // Lưu Stage chính
+    private static Stage primaryStage; 
 
     @Override
     public void start(@SuppressWarnings("exports") Stage stage) throws IOException {
     // Load icon
     try {
         Image icon = new Image(getClass().getResourceAsStream("/com/example/client/images/icon.png")); // Sửa lỗi chính tả getResourceAsStream
-        stage.getIcons().add(icon); // Sửa lỗi chính tả getIcons
+        stage.getIcons().add(icon); 
     } catch (Exception e) {
         
-        // Ứng dụng vẫn chạy nếu không load được icon
+        
     }
 
-    Scene scene = new Scene(loadFXML("Login"), 640, 480); // Sửa lỗi cú pháp tham số
-    stage.setScene(scene); // Sửa biến scene viết hoa
-    stage.setTitle("TCP File Transfer"); // Tiêu đề ứng dụng
+    Scene scene = new Scene(loadFXML("Login"), 640, 480); 
+    stage.setScene(scene); 
+    stage.setTitle("TCP File Transfer"); 
 
-    stage.setWidth(1550); // Sửa primaryStage thành stage
-    stage.setHeight(800); // Sửa primaryStage thành stage
-
+    stage.setWidth(1550); 
+    stage.setHeight(800); 
     stage.show();
 }
 
@@ -45,24 +44,17 @@ public class App extends Application {
     public static void main(String[] args) {
         launch();
     }
-
-    /**
-     * Phương thức tĩnh để hiển thị Alert từ bất kỳ đâu trong ứng dụng.
-     * @param title Tiêu đề Alert.
-     * @param message Nội dung Alert.
-     */
     public static void showAlert(String title, String message) {
-        // Đảm bảo chạy trên UI Thread
+        
         Platform.runLater(() -> {
-            Alert alert = new Alert(Alert.AlertType.INFORMATION); // Hoặc Alert.AlertType.ERROR
+            Alert alert = new Alert(Alert.AlertType.INFORMATION); 
             alert.setTitle(title);
-            alert.setHeaderText(null); // Không có HeaderText
+            alert.setHeaderText(null); 
             alert.setContentText(message);
             alert.showAndWait();
         });
     }
 
-     // Tùy chọn: Getter cho primary Stage nếu cần
      @SuppressWarnings("exports")
     public static Stage getPrimaryStage() {
          return primaryStage;

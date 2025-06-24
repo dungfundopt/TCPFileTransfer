@@ -1,4 +1,3 @@
-// Dán để THAY THẾ TOÀN BỘ file clienthandler.java của bạn
 
 package com.example.server;
 
@@ -99,7 +98,7 @@ public class ClientHandler implements Runnable {
             oos.flush();
     }
 
-    // Xử lý các yêu cầu đơn giản trả về một ServerResponse ngay lập tức
+    
     private ServerResponse handleSimpleRequest(ServerRequest request) {
         switch (request.getType()) {
             
@@ -119,9 +118,7 @@ public class ClientHandler implements Runnable {
         }
     }
     
-    // =========================================================================
-    // PHƯƠNG THỨC XỬ LÝ UPLOAD ĐÃ ĐƯỢC TÁI CẤU TRÚC (SỬA LỖI)
-    // =========================================================================
+    
     private void handleUploadFileRequest(ServerRequest request, ObjectInputStream ois, ObjectOutputStream oos) throws IOException {
         if (loggedInUsername == null || !(request.getData() instanceof FileMetadata)) {
             oos.writeObject(new ServerResponse(false, "Authentication required or invalid upload request.", null));
@@ -139,22 +136,22 @@ public class ClientHandler implements Runnable {
         }
 
         try {
-            // 1. Gửi phản hồi "Ready" cho client
+            
             oos.writeObject(new ServerResponse(true, "Ready to receive file.", null));
             oos.flush();
 
-            // 2. Gọi phương thức nhận file
+            
             receiveFile(ois, filePath, fileMetadata.getFileSize());
 
-            // 3. File đã nhận xong, lưu metadata vào DB
+            
             FileMetadata completeMetadata = new FileMetadata(
                     fileMetadata.getFilename(),
-                    fileMetadata.getFileSize(), // Kích thước file nhận được
+                    fileMetadata.getFileSize(), 
                     loggedInUsername,
                     LocalDateTime.now());
             boolean metadataSaved = dbHandler.addFileMetadata(completeMetadata);
 
-            // 4. Gửi phản hồi CUỐI CÙNG báo thành công/thất bại
+            
             ServerResponse finalResponse = new ServerResponse(metadataSaved,
                     metadataSaved ? "File uploaded successfully." : "File uploaded, but failed to save metadata.", null);
             oos.writeObject(finalResponse);
@@ -162,8 +159,8 @@ public class ClientHandler implements Runnable {
 
         } catch (IOException | ClassNotFoundException e) {
             logger.severe("Error during file transfer: " + e.getMessage());
-            Files.deleteIfExists(filePath); // Dọn dẹp file hỏng
-            // Cố gắng gửi thông báo lỗi cho client nếu có thể
+            Files.deleteIfExists(filePath); 
+            
             if (clientSocket.isConnected() && !clientSocket.isClosed()) {
                 oos.writeObject(new ServerResponse(false, "Error during file transfer on server: " + e.getMessage(), null));
                 oos.flush();
@@ -171,9 +168,7 @@ public class ClientHandler implements Runnable {
         }
     }
 
-    // =========================================================================
-    // PHƯƠNG THỨC NHẬN FILE ĐÚNG LOGIC
-    // =========================================================================
+    
     private void receiveFile(ObjectInputStream ois, Path filePath, long expectedSize) throws IOException, ClassNotFoundException {
         long totalReceived = 0;
         try (OutputStream fos = Files.newOutputStream(filePath)) {
@@ -198,9 +193,7 @@ public class ClientHandler implements Runnable {
         logger.log(Level.SEVERE, "Successfully received file: {0} ({1} bytes)", new Object[]{filePath.getFileName(), totalReceived});
     }
     
-    // =========================================================================
-    // CÁC PHƯƠNG THỨC KHÁC (GIỮ NGUYÊN)
-    // =========================================================================
+    
     private void handleDownloadFileRequest(ServerRequest request, ObjectOutputStream oos) throws IOException {
         if (loggedInUsername != null && request.getData() instanceof String) {
             String filenameToDownload = (String) request.getData();
@@ -208,10 +201,10 @@ public class ClientHandler implements Runnable {
             Path filePath = UPLOAD_DIR.resolve(filenameToDownload);
 
             if (fileMetadata != null && Files.exists(filePath)) {
-                // Gửi phản hồi ban đầu chứa metadata
+                
                 oos.writeObject(new ServerResponse(true, "Server is ready to send file.", fileMetadata));
                 oos.flush();
-                // Gửi dữ liệu file
+                
                 sendFile(filePath, oos);
             } else {
                 oos.writeObject(new ServerResponse(false, "File not found.", null));
@@ -261,7 +254,7 @@ public class ClientHandler implements Runnable {
 
     private ServerResponse handleListFilesRequest() {
         if (loggedInUsername == null) return new ServerResponse(false, AUTHENTICATION_REQUIRED, null);
-        List<FileMetadata> files = dbHandler.getAllFileMetadata(loggedInUsername); // Sửa lại để chỉ lấy file của user
+        List<FileMetadata> files = dbHandler.getAllFileMetadata(loggedInUsername); 
         return new ServerResponse(true, "File list retrieved.", new FileListResponse(files));
     }
     

@@ -1,6 +1,6 @@
 package com.example.client;
 
-// Import các lớp từ shared module
+
 import java.io.File;
 import java.io.IOException;
 import java.util.List;
@@ -59,22 +59,22 @@ public class ClientController {
     private final ObservableList<FileMetadata> masterFileList = FXCollections.observableArrayList();
     private FilteredList<FileMetadata> filteredFileList;
     private String uploadfailed = "Upload Failed";
-    // !!! Thêm trường ServerClient !!!
+    
     private ServerClient serverClient;
 
-     // Phương thức để nhận ServerClient instance từ LoginController
+     
     public void setServerClient(ServerClient serverClient) {
         this.serverClient = serverClient;
         
-        // Sau khi nhận ServerClient, có thể tải danh sách file ngay
+        
         if (this.serverClient != null && this.serverClient.isConnected()) {
              loadFileList();
         } else {
              App.showAlert("Connection Error", "Failed to connect to server after login.");
-             // Quay về màn hình Login nếu không kết nối được
+             
              Platform.runLater(() -> {
                  try {
-                     // Lấy Stage từ một control bất kỳ trong scene hiện tại
+                     
                      Stage stage = (Stage) welcomeLabel.getScene().getWindow();
                      FXMLLoader loader = new FXMLLoader(getClass().getResource("Login.fxml"));
                      Parent root = loader.load();
@@ -94,7 +94,7 @@ public class ClientController {
     @SuppressWarnings("unchecked")
     @FXML
     public void initialize() {
-        // Cấu hình các cột của TableView (giữ nguyên)
+        
         TableColumn<FileMetadata, String> filenameColumn = (TableColumn<FileMetadata, String>) fileTableView.getColumns().get(0);
         filenameColumn.setCellValueFactory(new PropertyValueFactory<>("filename"));
 
@@ -130,10 +130,10 @@ public class ClientController {
         downloadButton.setDisable(true);
         uploadButton.setDisable(true);
         progressBar.setVisible(false);
-        // progressBar.progressProperty().unbind(); // Không cần unbind ở đây
-        progressBar.setProgress(0); // Reset progress bar ban đầu
+        
+        progressBar.setProgress(0); 
 
-        // loadFileList(); // loadFileList sẽ được gọi sau khi setServerClient
+        
     }
 
     public void setUsername(String username) {
@@ -145,11 +145,11 @@ public class ClientController {
     void handleLogout(ActionEvent event) {
         
          if (serverClient != null) {
-              ServerResponse logoutResponse = serverClient.logout(); // Gửi yêu cầu logout
+              ServerResponse logoutResponse = serverClient.logout(); 
               if (logoutResponse != null) {
-                  // No additional action needed on successful logout response
+                  
               }
-             serverClient = null; // Xóa instance
+             serverClient = null; 
          }
 
         try {
@@ -177,7 +177,7 @@ public class ClientController {
     void handleSelectFile(ActionEvent event) {
         FileChooser fileChooser = new FileChooser();
         fileChooser.setTitle("Select File to Upload");
-        // Lấy Stage hiện tại từ một control để hiển thị FileChooser
+        
         Stage currentStage = (Stage) ((Node) event.getSource()).getScene().getWindow();
         selectedFileForUpload = fileChooser.showOpenDialog(currentStage);
 
@@ -235,18 +235,14 @@ public class ClientController {
              App.showAlert(uploadfailed, "A file with this name already exists on the server.");
              return;
          }
-
-        
-
-        // --- Thực hiện Upload trong luồng nền ---
         Task<ServerResponse> uploadTask = new Task<>() {
             @Override
             protected ServerResponse call() throws Exception {
-                 // Truyền callback BiConsumer vào ServerClient.uploadFile
+                 
                  BiConsumer<Long, Long> progressCallback = (sentBytes, totalSize) -> 
                      updateProgress(sentBytes, totalSize);
 
-                 // Gọi phương thức uploadFile từ ServerClient
+                 
                  return serverClient.uploadFile(selectedFileForUpload, progressCallback); // Trả về phản hồi cuối cùng từ Server
             }
 
@@ -278,7 +274,7 @@ public class ClientController {
                     progressBar.setVisible(false);
                     uploadButton.setDisable(true);
                      selectedFileForUpload = null;
-                     progressBar.progressProperty().unbind(); // Bỏ bind
+                     progressBar.progressProperty().unbind(); 
                      progressBar.setProgress(0);
                 });
             }
@@ -291,20 +287,20 @@ public class ClientController {
                       progressBar.setVisible(false);
                       uploadButton.setDisable(true);
                       selectedFileForUpload = null;
-                      progressBar.progressProperty().unbind(); // Bỏ bind
+                      progressBar.progressProperty().unbind(); 
                       progressBar.setProgress(0);
                  });
              }
-        }; // <-- Dấu chấm phẩy ở cuối Task
+        }; 
 
 
-        // Bind progress bar với task's progress property
+        
         progressBar.progressProperty().bind(uploadTask.progressProperty());
         progressBar.setVisible(true);
 
         uploadButton.setDisable(true);
 
-        // Chạy task trong một luồng mới
+        
         new Thread(uploadTask).start();
     }
 
@@ -324,7 +320,7 @@ public class ClientController {
              return;
          }
 
-         // Mở FileChooser để người dùng chọn vị trí lưu file
+         
          FileChooser fileChooser = new FileChooser();
          fileChooser.setTitle("Save File");
          fileChooser.setInitialFileName(filenameToDownload);
@@ -338,8 +334,8 @@ public class ClientController {
 
          
 
-         // --- Thực hiện Download trong luồng nền ---
-         Task<FileMetadata> downloadTask = new Task<>() { // Task trả về FileMetadata sau khi tải xong
+         
+         Task<FileMetadata> downloadTask = new Task<>() { 
               @Override
               protected FileMetadata call() throws Exception {
                    if (serverClient == null || !serverClient.isConnected()) {
@@ -352,13 +348,13 @@ public class ClientController {
                         throw new IllegalArgumentException("Save location cannot be null.");
                    }
 
-                   // Truyền callback BiConsumer vào ServerClient.downloadFile
+                   
                    BiConsumer<Long, Long> progressCallback = (receivedBytes, totalSize) ->
-                       updateProgress(receivedBytes, totalSize); // Cập nhật Task's progress
+                       updateProgress(receivedBytes, totalSize); 
 
-                   // Gọi phương thức downloadFile từ ServerClient
-                   return serverClient.downloadFile(filenameToDownload, saveFile, progressCallback); // Task trả về metadata của file đã tải
-               } // Kết thúc call()
+                   
+                   return serverClient.downloadFile(filenameToDownload, saveFile, progressCallback); 
+               } 
 
             @Override
             protected void succeeded() {
@@ -374,14 +370,14 @@ public class ClientController {
             protected void cancelled() {
                 handleDownloadCancelled();
             }
-        }; // <-- Dấu chấm phẩy ở cuối Task
+        }; 
 
 
-           // Bind progress bar với task's progress property
+           
            progressBar.progressProperty().bind(downloadTask.progressProperty());
            progressBar.setVisible(true);
 
-           // Chạy task trong một luồng mới
+           
            new Thread(downloadTask).start();
        }
 
@@ -391,14 +387,14 @@ public class ClientController {
                  
                  Platform.runLater(() -> {
                      masterFileList.clear();
-                     filteredFileList.setPredicate(p -> false); // Hiển thị trống
+                     filteredFileList.setPredicate(p -> false); 
                       App.showAlert("Connection Error", "Not connected to server. Cannot load file list.");
                  });
                  return;
              }
              
 
-             // --- Thực hiện Load File List trong luồng nền ---
+             
              Task<List<FileMetadata>> loadTask = new Task<>() {
                  @Override
                  protected List<FileMetadata> call() throws Exception {
@@ -425,7 +421,7 @@ public class ClientController {
                            App.showAlert("Error Loading Files", "Could not load file list: " + getException().getMessage());
                        });
                  }
-             }; // <-- Dấu chấm phẩy ở cuối Task
+             }; 
 
 
              new Thread(loadTask).start();
